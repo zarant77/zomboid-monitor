@@ -3,36 +3,75 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>28 Kills Later · Server Monitor</title>
-<meta name="description" content="Live Project Zomboid server monitor for 28 Kills Later: online players, kill leaderboard, availability, server statistics, mods, and recent events.">
+<title>28 Kills Later · Project Zomboid Server Monitor</title>
+<meta name="description" content="Live Project Zomboid server monitoring with player leaderboard, uptime, events, mods and historical statistics.">
 <link rel="canonical" href="https://zomboid.catemup.com/">
 <meta property="og:type" content="website">
 <meta property="og:locale" content="en_US">
 <meta property="og:site_name" content="28 Kills Later Monitor">
-<meta property="og:title" content="28 Kills Later · Server Monitor">
-<meta property="og:description" content="Live Project Zomboid server monitor for 28 Kills Later: online players, kill leaderboard, availability, server statistics, mods, and recent events.">
+<meta property="og:title" content="28 Kills Later · Project Zomboid Server Monitor">
+<meta property="og:description" content="Live Project Zomboid server monitoring with player leaderboard, uptime, events, mods and historical statistics.">
 <meta property="og:url" content="https://zomboid.catemup.com/">
-<meta property="og:image" content="https://zomboid.catemup.com/og-image.jpg?v=409be8e0cce2">
-<meta property="og:image:type" content="image/jpeg">
-<meta property="og:image:width" content="1672">
-<meta property="og:image:height" content="941">
-<meta property="og:image:alt" content="Project Zomboid server monitor artwork with a survivor at sunset and a dashboard showing players, leaderboard, statistics, events, and mods.">
+<meta property="og:image" content="https://zomboid.catemup.com/og-image.png?v=dashboard-2">
+<meta property="og:image:alt" content="28 Kills Later Project Zomboid server monitor">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="28 Kills Later · Server Monitor">
-<meta name="twitter:description" content="Live Project Zomboid server monitor for 28 Kills Later: online players, kill leaderboard, availability, server statistics, mods, and recent events.">
-<meta name="twitter:image" content="https://zomboid.catemup.com/og-image.jpg?v=409be8e0cce2">
-<meta name="twitter:image:alt" content="Project Zomboid server monitor artwork with a survivor at sunset and a dashboard showing players, leaderboard, statistics, events, and mods.">
+<meta name="twitter:title" content="28 Kills Later · Project Zomboid Server Monitor">
+<meta name="twitter:description" content="Live Project Zomboid server monitoring with player leaderboard, uptime, events, mods and historical statistics.">
+<meta name="twitter:image" content="https://zomboid.catemup.com/og-image.png?v=dashboard-2">
+<meta name="twitter:image:alt" content="28 Kills Later Project Zomboid server monitor">
+<link rel="icon" href="/favicon.ico">
 <link rel="stylesheet" href="/styles.css">
+<script src="/js/utils.js" defer></script>
+<script src="/js/charts.js" defer></script>
+<script src="/js/players.js" defer></script>
 <script src="/app.js" defer></script>
 </head>
-<body><main>
-<header><div class="eyebrow">PROJECT ZOMBOID / LIVE MONITOR</div><div class="heading"><h1>28 Kills Later</h1><span id="status" class="badge">WAITING</span></div><p id="refresh" role="status">Connecting to monitor…</p></header>
-<section class="card server"><h2>Server</h2><h3 id="name">Waiting for first check</h3><p id="address" class="muted"></p><p id="error" role="status"></p><div class="metrics" id="server-metrics"></div></section>
-<div class="columns"><section class="card"><h2>Online Players <span id="online-count" class="muted"></span></h2><div class="table-wrap"><table><thead><tr><th>Player</th><th>Kills</th><th>Session</th></tr></thead><tbody id="players"></tbody></table></div><p id="players-note" class="muted"></p></section>
-<section class="card"><h2>Statistics</h2><div class="metrics" id="stats"></div><p id="state-time" class="muted"></p><h3 class="small">Players · last 60 sampled minutes</h3><div id="history" class="history" aria-label="Player count history"></div></section></div>
-<section class="card"><div class="heading"><h2>Leaderboard</h2><span class="muted">Highest observed kills · all players</span></div><div class="table-wrap"><table><thead><tr><th>#</th><th>Player</th><th>Kills</th><th>Status</th><th>Last seen</th></tr></thead><tbody id="leaderboard"></tbody></table></div></section>
-<div class="columns"><section class="card"><h2>Recent Events</h2><div class="table-wrap"><table><thead><tr><th>Time</th><th>Type</th><th>Description</th></tr></thead><tbody id="events"></tbody></table></div></section>
-<section class="card"><h2>Mods</h2><h3 id="mods-count">Unknown</h3><p id="mods-note" class="muted"></p><div id="mods" class="tags"></div></section></div>
-<section class="card"><h2>Server Info</h2><p id="info-details" class="muted"></p><div id="description" class="description">No description reported.</div></section>
-<footer>Checks run sequentially · browser refresh every 5 seconds · history persisted in SQLite</footer>
-</main></body></html>
+<body>
+<svg class="icon-defs" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>
+<symbol id="i-server" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="7" rx="2"/><rect x="3" y="14" width="18" height="7" rx="2"/><path d="M7 6.5h.01M7 17.5h.01M15 6.5h3M15 17.5h3"/></symbol>
+<symbol id="i-players" viewBox="0 0 24 24"><circle cx="9" cy="7" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3zM17 4a3 3 0 0 1 0 6M18 14a5 5 0 0 1 3 5v2"/></symbol>
+<symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 21V13h4v8M10 21V7h4v14M16 21V3h4v18"/></symbol>
+<symbol id="i-box" viewBox="0 0 24 24"><path d="m12 2 9 5v10l-9 5-9-5V7zM3 7l9 5 9-5M12 12v10"/></symbol>
+<symbol id="i-mods" viewBox="0 0 24 24"><path d="M3 4h6a3 3 0 1 1 6 0h6v6a3 3 0 1 0 0 6v5h-6a3 3 0 1 0-6 0H3v-6a3 3 0 1 0 0-6z"/></symbol>
+<symbol id="i-shield" viewBox="0 0 24 24"><path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6zM8 12l3 3 5-6"/></symbol>
+<symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V6a4 4 0 0 1 8 0v4M12 14v3"/></symbol>
+<symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V3H3v13h5"/></symbol>
+<symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 6v6l4 2"/></symbol>
+<symbol id="i-trophy" viewBox="0 0 24 24"><path d="M7 3h10v7a5 5 0 0 1-10 0zM7 5H3v3a4 4 0 0 0 4 4M17 5h4v3a4 4 0 0 1-4 4M12 15v6M8 21h8"/></symbol>
+<symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7h.01"/></symbol>
+<symbol id="i-swords" viewBox="0 0 24 24"><path d="m3 3 12 12M3 3l1 5 4-4zM21 3 9 15M21 3l-1 5-4-4zM12 18l6-6M6 12l6 6M15 15l6 6M9 15l-6 6"/></symbol>
+<symbol id="i-file" viewBox="0 0 24 24"><path d="M5 2h9l5 5v15H5zM14 2v6h5M8 12h8M8 16h8"/></symbol>
+<symbol id="i-arrow" viewBox="0 0 24 24"><path d="M4 12h16M14 6l6 6-6 6"/></symbol>
+<symbol id="i-person" viewBox="0 0 24 24"><circle cx="12" cy="3" r="2"/><path d="m7 10 5-4 5 4M12 6v8M12 14l-5 8M12 14l5 8"/></symbol>
+</defs></svg>
+<div class="page">
+<header class="hero" data-hero="">
+<div class="brand"><svg class="icon brand-icon"><use href="#i-person"/></svg><span>PROJECT ZOMBOID<br><span class="muted">SERVER MONITOR</span></span></div>
+<h1>28 Kills Later</h1>
+<p class="hero-subtitle">[FRESH WIPE] [GER/EN] | PvE | Beginner Friendly</p>
+<div class="hero-live"><strong id="status" class="live-status waiting"><span class="status-dot"></span><span id="status-label">WAITING</span></strong><div class="check-time"><span id="relative-check">Waiting for first check</span><time id="exact-check">—</time></div></div>
+<p id="connection-message" class="connection-message" role="status"></p>
+</header>
+<main>
+<section class="panel server-panel" aria-labelledby="server-heading">
+<div class="server-top"><div class="server-identity"><span class="server-icon"><svg class="icon"><use href="#i-server"/></svg></span><div><h2 id="server-heading" class="eyebrow">SERVER</h2><h3 id="server-name">Project Zomboid</h3><div class="address-line"><span id="address" class="mono">—</span><button class="icon-button copy-address" aria-label="Copy server address"><svg class="icon"><use href="#i-copy"/></svg></button><span class="copy-feedback" role="status"></span></div></div></div><div id="server-badges" class="badges"></div></div>
+<div id="server-metrics" class="server-metrics"></div><p id="server-error" class="error" role="status"></p>
+</section>
+<div class="primary-grid">
+<section class="panel" aria-labelledby="players-heading"><div class="panel-heading"><h2 id="players-heading"><span class="dot green"></span>Online Players <span id="online-count">(0)</span></h2><a href="#leaderboard-section" class="text-link">View all <span aria-hidden="true">→</span></a></div><div class="table-wrap"><table class="online-table"><thead><tr><th>#</th><th>Player</th><th>Kills</th><th>Session</th><th>Joined</th></tr></thead><tbody id="players"></tbody></table></div><p id="players-note" class="note"></p></section>
+<section class="panel statistics" aria-labelledby="stats-heading"><div class="panel-heading"><h2 id="stats-heading"><svg class="icon blue"><use href="#i-chart"/></svg>Server Statistics</h2><div class="segmented" id="period-filter" role="group" aria-label="Statistics period"><button data-period="24h" aria-pressed="true">24h</button><button data-period="7d" aria-pressed="false">7d</button><button data-period="30d" aria-pressed="false">30d</button></div></div><div id="stats-metrics" class="stats-metrics"></div><div class="chart-heading"><span id="chart-title">Players &amp; Ping (last 24 hours)</span><span class="legend"><span><i class="dot green"></i>Players</span><span><i class="dot blue-bg"></i>Ping (ms)</span></span></div><div class="chart-wrap" id="history-chart"><svg id="chart" viewBox="0 0 520 160" role="img" aria-label="Historical player count and ping"></svg><div id="chart-tooltip" class="chart-tooltip" hidden></div><p id="chart-empty" class="chart-empty">No samples in this period yet.</p></div><p id="stats-note" class="note">Period statistics · tracked players across all history</p></section>
+</div>
+<section id="leaderboard-section" class="panel" aria-labelledby="leaderboard-heading"><div class="panel-heading leaderboard-heading"><h2 id="leaderboard-heading"><svg class="icon amber"><use href="#i-trophy"/></svg>Leaderboard</h2><div class="segmented" id="leaderboard-filter" role="group" aria-label="Leaderboard filter"><button data-filter="all" aria-pressed="true">All players</button><button data-filter="online" aria-pressed="false">Online only</button><button data-filter="offline" aria-pressed="false">Offline only</button></div><span class="leaderboard-caption">Highest observed kills · all players</span></div><table class="leaderboard-table"><thead><tr><th>#</th><th>Player</th><th>Kills <span class="green">↓</span></th><th>Status</th><th>Last seen</th><th>First seen</th><th>Best session</th><th>Gain (tracked)</th></tr></thead><tbody id="leaderboard"></tbody></table><p class="note">Gain counts positive score changes observed by this monitor; initial kills are excluded.</p></section>
+<div class="bottom-grid">
+<section class="panel events-panel" aria-labelledby="events-heading"><div class="panel-heading"><h2 id="events-heading"><svg class="icon blue"><use href="#i-clock"/></svg>Recent Events</h2></div><div class="segmented" id="event-filter" role="group" aria-label="Event filter"><button data-event="all" aria-pressed="true">All</button><button data-event="join" aria-pressed="false">Joins</button><button data-event="leave" aria-pressed="false">Leaves</button><button data-event="server" aria-pressed="false">Server</button></div><ul id="events" class="event-list"></ul><button id="load-events" class="text-button">Load more</button><p id="events-note" class="note"></p></section>
+<section class="panel mods-panel" aria-labelledby="mods-heading"><div class="panel-heading"><h2 id="mods-heading"><svg class="icon blue"><use href="#i-mods"/></svg>Mods</h2></div><div class="mod-counters"><div class="metric"><strong id="mods-total">—</strong><span>Total mods</span></div><div class="metric"><strong id="mods-reported">—</strong><span>Reported by server</span></div></div><div id="mods-warning" class="warning" hidden><svg class="icon amber"><use href="#i-info"/></svg><div><strong>Incomplete list</strong><p id="mods-warning-text"></p></div></div><div id="mods" class="mod-tags"></div><p id="mods-missing" class="note"></p></section>
+<section class="panel info-panel" aria-labelledby="info-heading"><div class="panel-heading"><h2 id="info-heading"><svg class="icon blue"><use href="#i-info"/></svg>Server Info</h2></div><dl id="server-info" class="info-list"></dl></section>
+</div>
+<details class="panel description-panel"><summary><svg class="icon blue"><use href="#i-file"/></svg><h2>Server Description</h2><span class="chevron" aria-hidden="true">⌄</span></summary><div id="description" class="description">No description reported.</div></details>
+<p id="state-note" class="footer-note"></p>
+</main>
+<footer>28 Kills Later · Checks run sequentially · History persisted in SQLite</footer>
+</div>
+<dialog id="player-dialog" aria-labelledby="player-dialog-title"><div class="dialog-heading"><div><div class="eyebrow">PLAYER DETAILS</div><h2 id="player-dialog-title">Player</h2><p id="player-dialog-status"></p></div><button id="close-player" class="icon-button" aria-label="Close player details">✕</button></div><div id="player-details" class="detail-grid"></div><h3 class="detail-subtitle">Observed join / leave snapshots</h3><div id="player-timeline" class="player-timeline"></div><p id="player-detail-note" class="note"></p></dialog>
+</body>
+</html>

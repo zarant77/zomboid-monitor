@@ -26,10 +26,15 @@ class Repository {
         const seen = new Set(list.map(p => p.name));
         for (const p of list) {
           const existing = db.prepare('SELECT * FROM players WHERE name=?').get(p.name);
-          db.prepare(`INSERT INTO players(name,first_seen,last_seen,current_kills,max_kills,online,current_session_seconds)
-            VALUES(?,?,?,?,?,1,?) ON CONFLICT(name) DO UPDATE SET last_seen=excluded.last_seen,
+          db.prepare(`INSERT INTO players(name,first_seen,last_seen,current_kills,max_kills,online,current_session_seconds,
+            longest_session_seconds,join_count,gain_tracked_since)
+            VALUES(?,?,?,?,?,1,?,?,1,?) ON CONFLICT(name) DO UPDATE SET last_seen=excluded.last_seen,
             current_kills=excluded.current_kills,max_kills=MAX(players.max_kills,excluded.max_kills),
-            online=1,current_session_seconds=excluded.current_session_seconds`).run(p.name, at, at, p.kills, p.kills, p.sessionSeconds);
+            online=1,current_session_seconds=excluded.current_session_seconds,
+            tracked_kill_gain=players.tracked_kill_gain+MAX(0,excluded.current_kills-players.current_kills),
+            longest_session_seconds=MAX(players.longest_session_seconds,excluded.current_session_seconds),
+            join_count=players.join_count+CASE WHEN players.online=0 THEN 1 ELSE 0 END`).run(
+              p.name, at, at, p.kills, p.kills, p.sessionSeconds, p.sessionSeconds, at);
           if (!existing?.online) {
             const id = existing?.id ?? db.prepare('SELECT id FROM players WHERE name=?').get(p.name).id;
             db.prepare('INSERT INTO player_events(player_id,event_type,created_at,kills,session_seconds) VALUES(?,?,?,?,?)')
@@ -76,11 +81,61 @@ class Repository {
     return { online: null, name: 'Project Zomboid', host: this.config.host, port: this.config.gamePort,
       updatedAt: null, ...status, stale: !row.last_check || Date.now() - Date.parse(row.last_check) > this.config.interval + 15000 };
   }
+  playerRows(where = '') {
+    return this.db.prepare(`SELECT p.*,
+      (SELECT created_at FROM player_events WHERE player_id=p.id AND event_type='join'
+        ORDER BY created_at DESC,id DESC LIMIT 1) AS joined_at
+      FROM players p ${where} ORDER BY max_kills DESC,name`).all();
+  }
+  mapPlayer(p) {
+    return { id: p.id, name: p.name, currentKills: p.current_kills, maxKills: p.max_kills,
+      online: Boolean(p.online), firstSeen: p.first_seen, lastSeen: p.last_seen,
+      currentSessionSeconds: p.current_session_seconds, lastSessionSeconds: p.last_session_seconds,
+      longestSessionSeconds: p.longest_session_seconds, trackedKillGain: p.tracked_kill_gain,
+      gainTrackedSince: p.gain_tracked_since, joinCount: p.join_count, observedSessions: p.join_count,
+      joinedAt: p.online ? p.joined_at : null };
+  }
   players(onlineOnly = false) {
-    return this.db.prepare(`SELECT * FROM players ${onlineOnly ? 'WHERE online=1' : ''} ORDER BY max_kills DESC,name`).all().map(p => ({
-      name: p.name, currentKills: p.current_kills, maxKills: p.max_kills, online: Boolean(p.online),
-      firstSeen: p.first_seen, lastSeen: p.last_seen, currentSessionSeconds: p.current_session_seconds, lastSessionSeconds: p.last_session_seconds
-    }));
+    return this.playerRows(onlineOnly ? 'WHERE p.online=1' : '').map(p => this.mapPlayer(p));
+  }
+  player(id) {
+    const row = this.db.prepare(`SELECT p.*,
+      (SELECT created_at FROM player_events WHERE player_id=p.id AND event_type='join'
+        ORDER BY created_at DESC,id DESC LIMIT 1) AS joined_at FROM players p WHERE p.id=?`).get(id);
+    if (!row) return null;
+    const events = this.db.prepare(`SELECT event_type AS eventType,created_at AS createdAt,
+      kills,session_seconds AS sessionSeconds FROM player_events WHERE player_id=?
+      ORDER BY created_at DESC,id DESC LIMIT 50`).all(id);
+    return { ...this.mapPlayer(row), events };
+  }
+  history(period = '24h', now = Date.now()) {
+    const periods = { '24h': [24*3600000, 10*60000], '7d': [7*86400000, 3600000], '30d': [30*86400000, 4*3600000] };
+    if (!periods[period]) throw new RangeError('period must be 24h, 7d, or 30d');
+    const [window, bucketMs] = periods[period];
+    const since = new Date(now-window).toISOString(), until = new Date(now).toISOString();
+    const rows = this.db.prepare(`SELECT
+      CAST(CAST(strftime('%s',created_at) AS INTEGER)/? AS INTEGER) AS bucket,
+      SUM(checks) AS checks,SUM(failed_checks) AS failedChecks,
+      SUM(ping_sum) AS pingSum,SUM(ping_checks) AS pingChecks,
+      MIN(min_ping) AS minPing,MAX(max_ping) AS maxPing,
+      SUM(players_sum) AS playersSum,SUM(successful_checks) AS playerChecks,
+      MAX(max_players_seen) AS peakPlayers
+      FROM server_samples WHERE created_at>=? AND created_at<=? GROUP BY bucket ORDER BY bucket`)
+      .all(bucketMs/1000, since, until);
+    const total = rows.reduce((a,r) => ({ checks:a.checks+r.checks, failed:a.failed+r.failedChecks,
+      pingSum:a.pingSum+r.pingSum, pingChecks:a.pingChecks+r.pingChecks }), { checks:0,failed:0,pingSum:0,pingChecks:0 });
+    const finite = values => values.filter(v => v != null);
+    const mins = finite(rows.map(r=>r.minPing)), maxs = finite(rows.map(r=>r.maxPing));
+    return { period, from: since, to: until, bucketSeconds: bucketMs/1000,
+      summary: { totalChecks:total.checks, failedChecks:total.failed,
+        availability:total.checks ? (total.checks-total.failed)/total.checks*100 : null,
+        avgPing:total.pingChecks ? total.pingSum/total.pingChecks : null,
+        minPing:mins.length ? Math.min(...mins) : null, maxPing:maxs.length ? Math.max(...maxs) : null,
+        peakPlayers:rows.length ? Math.max(...rows.map(r=>r.peakPlayers ?? 0)) : null },
+      samples: rows.map(r=>({ createdAt:new Date(r.bucket*bucketMs).toISOString(),
+        avgPing:r.pingChecks ? r.pingSum/r.pingChecks : null,
+        avgPlayers:r.playerChecks ? r.playersSum/r.playerChecks : null,
+        minPing:r.minPing,maxPing:r.maxPing,peakPlayers:r.peakPlayers,checks:r.checks,failedChecks:r.failedChecks })) };
   }
   stats() {
     const s = this.state(), status = this.status();

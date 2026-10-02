@@ -68,3 +68,50 @@ test('offline leaderboard survives closing and reopening a SQLite file', t => {
     assert.equal(db.prepare('PRAGMA integrity_check').get().integrity_check,'ok');
   } finally { db.close(); }
 });
+test('tracked gain uses only positive deltas, keeps maximum and session metrics', t => {
+  const r=setup(t);
+  const start='2026-10-03T00:00:';
+  for(const [i,kills] of [100,120,150,5,25].entries())r.record(state(kills,20+i*10),`${start}${String(i*5).padStart(2,'0')}.000Z`);
+  const p=r.players()[0];assert.equal(p.trackedKillGain,70);assert.equal(p.maxKills,150);
+  assert.equal(p.currentKills,25);assert.equal(p.longestSessionSeconds,60);assert.equal(p.joinCount,1);
+  r.record({online:false,error:'timeout'},'2026-10-03T00:01:00.000Z');
+  r.record(state(30,10),'2026-10-03T00:01:10.000Z');
+  const detail=r.player(p.id);assert.equal(detail.joinCount,2);assert.equal(detail.longestSessionSeconds,60);
+  assert.equal(detail.trackedKillGain,75);assert.equal(detail.joinedAt,'2026-10-03T00:01:10.000Z');
+  assert.equal(detail.events.length,3);
+});
+test('new migration preserves old records and backfills only known session data', t => {
+  const fs=require('node:fs'),path=require('node:path');
+  const db=new DatabaseSync(':memory:');t.after(()=>db.close());
+  db.exec('CREATE TABLE schema_migrations(name TEXT PRIMARY KEY,applied_at TEXT NOT NULL)');
+  for(const name of ['001_initial.sql','002_indexes.sql']){
+    db.exec(fs.readFileSync(path.join(__dirname,'../migrations',name),'utf8'));
+    db.prepare('INSERT INTO schema_migrations VALUES(?,?)').run(name,'2026-10-01T00:00:00.000Z');
+  }
+  db.prepare('INSERT INTO players(name,first_seen,last_seen,current_kills,max_kills,current_session_seconds,last_session_seconds) VALUES(?,?,?,?,?,?,?)').run('Legacy', '2026-10-01T00:00:00.000Z','2026-10-01T01:00:00.000Z',3000,4000,100,200);
+  db.prepare('INSERT INTO player_events(player_id,event_type,created_at,kills,session_seconds) VALUES(1,?,?,?,?)').run('join','2026-10-01T00:00:00.000Z',3000,10);
+  db.prepare('INSERT INTO player_events(player_id,event_type,created_at,kills,session_seconds) VALUES(1,?,?,?,?)').run('leave','2026-10-01T01:00:00.000Z',4000,3600);
+  migrate(db);migrate(db);const p=new Repository(db,config).players()[0];
+  assert.equal(p.name,'Legacy');assert.equal(p.maxKills,4000);assert.equal(p.currentKills,3000);
+  assert.equal(p.longestSessionSeconds,3600);assert.equal(p.joinCount,1);assert.equal(p.trackedKillGain,0);
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM player_events').get().n,2);
+});
+test('history downsampling is bounded and weighted, zero players and failures are distinct', t => {
+  const r=setup(t),now=Date.parse('2026-10-03T01:00:00.000Z');
+  assert.deepEqual(r.history('24h',now).samples,[]);
+  const s=normalize({raw:{players:[]},numplayers:0,maxplayers:30,ping:60},config);
+  r.record(s,'2026-10-03T00:00:00.000Z');
+  r.record({...s,ping:120,players:4},'2026-10-03T00:01:00.000Z');
+  r.record({online:false,error:'offline'},'2026-10-03T00:02:00.000Z');
+  const h=r.history('24h',now);assert.equal(h.samples.length,1);assert.equal(h.samples[0].avgPlayers,2);
+  assert.equal(h.samples[0].avgPing,90);assert.equal(h.summary.totalChecks,3);assert.equal(h.summary.failedChecks,1);
+  assert.equal(h.summary.peakPlayers,4);
+  for(let i=0;i<500;i++)r.record(s,new Date(now-30*86400000+i*60*60000).toISOString());
+  assert.ok(r.history('30d',now).samples.length<=181);assert.ok(r.history('7d',now).samples.length<=169);
+  assert.throws(()=>r.history('1y',now),RangeError);
+});
+test('long names and HTML characters are retained as data', t => {
+  const r=setup(t),name='<img src=x onerror=alert(1)> & "very long player name"';
+  const s=normalize({ping:80,numplayers:1,raw:{players:[{name,score:3001,time:5}]}},config);
+  r.record(s);assert.equal(r.players()[0].name,name);assert.equal(r.player(r.players()[0].id).name,name);
+});

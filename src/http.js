@@ -18,12 +18,20 @@ function createServer(repository, monitor) {
       const routes = {
         '/api/status': () => repository.status(), '/api/players': () => repository.players(true),
         '/api/leaderboard': () => repository.players(), '/api/stats': () => repository.stats(),
+        '/api/history': () => repository.history(url.searchParams.get('period') || '24h'),
         '/api/mods': () => repository.mods(), '/api/events': () => {
           const n = Number(url.searchParams.get('limit') ?? 50);
           if (!Number.isSafeInteger(n) || n < 1) throw new RangeError('limit must be a positive integer');
           return repository.events(Math.min(n, 200));
         }
       };
+      const playerMatch = url.pathname.match(/^\/api\/player\/(\d+)$/);
+      if (playerMatch) {
+        const id = Number(playerMatch[1]);
+        if (!Number.isSafeInteger(id) || id < 1) throw new RangeError('Invalid player id');
+        const player = repository.player(id);
+        return json(res, player ? 200 : 404, player || { error: 'Player not found' });
+      }
       if (routes[url.pathname]) return json(res, 200, routes[url.pathname]());
       if (!serveAsset(url.pathname, res)) json(res, 404, { error: 'Not found' });
     } catch (error) {

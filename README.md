@@ -66,6 +66,8 @@ All JSON endpoints use GET and return `Cache-Control: no-store`.
 | `/api/leaderboard` | All tracked players, ordered by `maxKills DESC`, then name |
 | `/api/stats` | Status, counters, availability, ping aggregates, peak, tracked players, state duration, downtime, latest 60 minute samples |
 | `/api/events?limit=50` | Combined server/player event array, newest first; max 200 |
+| `/api/history?period=24h` | Weighted sample history and period summary; periods: `24h`, `7d`, `30d` |
+| `/api/player/:id` | Player metrics and latest 50 join/leave snapshots; unknown ID returns 404 |
 | `/api/mods` | `reportedCount`, `totalCount`, `complete`, `mods`, `updatedAt` |
 
 An invalid `limit` returns 400; values above 200 are capped at 200. Unknown paths return 404, and other HTTP methods return 405. `/health` returns 200 while the monitor is running, even if the game server is offline; a stopped monitor returns 503. Before the first query, `online`, `serverOnline`, and `lastCheck` are `null`. The healthcheck reports monitor health separately from game server availability.
@@ -85,6 +87,24 @@ An invalid `limit` returns 400; values above 200 are capped at 200. Unknown path
 - The UI polls the API without reloading, waiting for the previous fetch cycle to finish. Server strings are escaped with `escapeHtml()` or inserted using `textContent`. No external scripts or fonts are loaded. Live game time, weather, world age, and other values unavailable through A2S are not added.
 - SIGINT/SIGTERM stop the timer, wait for the current query and HTTP requests, and close SQLite. A 15-second shutdown deadline applies. A persistence failure stops the process with a nonzero exit code instead of continuing without saving history.
 
+## Dashboard and player tracking
+
+The dashboard uses vanilla HTML/CSS/JavaScript with a dark survival theme, a hero background, responsive cards, and no player avatars. Leaderboard and event filters remain selected during polling. Player names open a keyboard-accessible details dialog. The chart supports pointer, touch, and arrow-key inspection.
+
+The default statistics period is 24 hours; 7-day and 30-day views are also available. Period metrics use the real checks accumulated in minute samples. Tracked player count is always the all-time total and is labeled accordingly. History is grouped into 10-minute, 1-hour, or 4-hour buckets, returning at most approximately 145, 169, or 181 points. Averages are weighted by their source check counts. Missing periods are left empty; the chart does not invent observations. Time-window boundaries use available minute samples.
+
+Migration `003_player_tracking.sql` adds `tracked_kill_gain`, `longest_session_seconds`, `join_count`, and `gain_tracked_since` without deleting any player or event records. The longest known session and existing join count are backfilled from stored values and events. Historical kill gain cannot be reconstructed from maxima, so existing players start at zero gain when this migration is applied. New players also start at zero gain; their initial score is a baseline. Subsequent positive score deltas accumulate, while decreases contribute zero. For example, `100 → 120 → 150 → 5 → 25` produces a gain of 70 and a maximum of 150. Changes between observations cannot be reconstructed if the score resets and rises again before the next check.
+
+`joinedAt` is the latest observed join timestamp for an online player, not an inferred login time. Observed sessions and join count both represent recorded joins; outages may split one actual session into multiple observed sessions. Longest session uses the highest duration actually reported by A2S. The player chart shows join/leave snapshots, not a continuous score history.
+
+Optional assets:
+
+- `public/hero.png` or `public/hero.jpg`: the dashboard uses the PNG first, then JPG, otherwise a gradient. Missing images do not prevent startup.
+- `public/og-image.png`: social preview image. Until supplied, the existing JPG is served at this route with its correct JPEG MIME type. Restart/redeploy after replacing assets.
+- `public/favicon.ico`: optional favicon; a missing icon returns 204.
+
+The included `hero.png` was generated with the built-in imagegen tool. Prompt: a wide survival-game illustration of an abandoned Kentucky town at sunset, dark pine silhouettes and rooftops, a misty forest horizon, an orange-red sky and water tower on the right, quiet dark space on the left for title text; no UI, text, logos, or watermark.
+
 ## Project structure
 
 ```text
@@ -98,7 +118,8 @@ src/http.js               HTTP routing
 src/web.js                static asset allowlist
 scripts/migrate.js        migration CLI
 migrations/*.sql          schema and indexes
-public/                   HTML, CSS, browser JavaScript
+public/                   HTML, CSS, browser JavaScript, hero and social assets
+public/js/                shared DOM utilities, SVG charts, player tables and dialog
 test/monitor.test.js      persistence and monitoring tests
 ```
 
@@ -116,4 +137,24 @@ curl http://localhost:3000/api/status
 curl http://localhost:3000/api/leaderboard
 ```
 
-The SQLite file and its parent directory are created automatically. WAL and foreign keys are enabled. Tests cover migrations, kill resets, join/leave events, offline persistence, database reopening, minute buckets, downtime, missing player lists, description ordering, and sequential monitoring after a query failure.
+The SQLite file and its parent directory are created automatically. WAL and foreign keys are enabled. Tests cover migrations, kill resets, join/leave events, offline persistence, database reopening, minute buckets, downtime, missing player lists, description ordering, and sequential monitoring after a query failure, tracked gain after resets, migration compatibility with existing data, weighted history downsampling, and names containing HTML characters.
+
+
+## Deploying the redesigned dashboard
+
+Environment variables, the Railway Volume mount, and the start command are unchanged. Keep `DATABASE_PATH=/data/zomboid.db`, mount the same persistent Volume at `/data`, and deploy the new code. `npm start` applies migration 003 automatically. Back up the Volume before deployment. Do not remove the existing database or edit migrations 001/002. Tracking gain starts at migration time; existing leaderboard maxima and offline players are retained.
+
+Local verification:
+
+```sh
+npm install
+npm run migrate
+npm run migrate
+npm test
+npm start
+curl 'http://localhost:3000/api/history?period=24h'
+curl 'http://localhost:3000/api/history?period=7d'
+curl 'http://localhost:3000/api/history?period=30d'
+# Use an id returned by /api/leaderboard:
+curl http://localhost:3000/api/player/1
+```
