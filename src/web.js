@@ -4,7 +4,8 @@ const assets = new Map([
   ['/', ['index.html', 'text/html; charset=utf-8']],
   ['/index.html', ['index.html', 'text/html; charset=utf-8']],
   ['/app.js', ['app.js', 'text/javascript; charset=utf-8']],
-  ['/styles.css', ['styles.css', 'text/css; charset=utf-8']]
+  ['/styles.css', ['styles.css', 'text/css; charset=utf-8']],
+  ['/og-image.png', ['og-image.png', 'image/png']]
 ].map(([url, [name, mime]]) => [url, { mime, content: fs.readFileSync(path.join(__dirname, '../public', name)) }]));
 function serveAsset(pathname, res) {
   const asset = assets.get(pathname);
