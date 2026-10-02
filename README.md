@@ -1,10 +1,10 @@
 # Project Zomboid Monitor
 
-Постійний вебмонітор сервера **[FRESH WIPE] [GER/EN] 28 Kills Later | PvE | Beginner Friendly**, `2.28.54.80:16261`. Node.js 24+, CommonJS, стандартний HTTP, вбудований `node:sqlite`. Єдина пряма production dependency — `gamedig`. Немає React, CDN, build step, ORM або Dockerfile.
+A persistent web monitor for **[FRESH WIPE] [GER/EN] 28 Kills Later | PvE | Beginner Friendly**, `2.28.54.80:16261`. Built with Node.js 24+, CommonJS, the standard HTTP server, and built-in `node:sqlite`. The only direct production dependency is `gamedig`. No React, CDN, build step, ORM, or Dockerfile is required.
 
-## Локальний запуск
+## Local setup
 
-Потрібен Node.js >=24.
+Requires Node.js >=24.
 
 ```sh
 npm install
@@ -12,15 +12,15 @@ cp .env.example .env
 npm start
 ```
 
-Відкрити http://localhost:3000. `.env` завантажується автоматично; системні environment variables мають пріоритет. Без `.env` використовуються defaults.
+Open [http://localhost:3000](http://localhost:3000). The application loads `.env` automatically; existing environment variables take precedence. If `.env` is absent, the defaults apply.
 
 ```sh
 npm run dev       # Node watch mode
 npm run migrate   # safe to repeat
-npm test          # isolated in-memory SQLite tests; no live server required
+npm test          # isolated SQLite tests; no live game server required
 ```
 
-Міграції автоматично застосовуються перед запуском. `server.js` також перевіряє їх для прямого запуску. `schema_migrations` зберігає застосовані SQL-файли; кожна міграція виконується в транзакції. Не редагуйте вже застосовані міграції: додайте наступний файл.
+Migrations run automatically before startup. `server.js` also checks them when started directly. `schema_migrations` records applied SQL files, and each migration runs in a transaction. Add a new migration file instead of editing an already applied migration.
 
 ## Environment variables
 
@@ -32,13 +32,13 @@ npm test          # isolated in-memory SQLite tests; no live server required
 | `CHECK_INTERVAL` | `5000` | Delay in ms after a completed query |
 | `DATABASE_PATH` | `./data/zomboid.db` | SQLite path, relative to working directory or absolute |
 
-Одна база належить одному host/port. Для моніторингу іншого сервера використовуйте інший файл бази, щоб не змішувати історію.
+Each database belongs to one host/port combination. Use a separate database file when monitoring another server to avoid mixing histories.
 
 ## Railway
 
-1. Підключіть репозиторій як Node service. Railpack визначає Node через `engines.node`; Docker не потрібен. Start command: `npm start`.
-2. Створіть **Volume**, приєднайте до цього service і задайте mount path **`/data`**.
-3. Додайте variables:
+1. Connect the repository as a Node service. Railpack selects Node using `engines.node`; Docker is unnecessary. Start command: `npm start`.
+2. Create a **Volume**, attach it to this service, and set its mount path to **`/data`**.
+3. Set these variables:
 
 ```dotenv
 DATABASE_PATH=/data/zomboid.db
@@ -47,16 +47,16 @@ GAME_PORT=16261
 CHECK_INTERVAL=5000
 ```
 
-4. `PORT` вручну не задавайте: Railway передає його сам. Healthcheck path: **`/health`**. Згенеруйте public domain.
-5. Використовуйте одну replica та вимкніть Serverless/App Sleeping для постійного моніторингу. Налаштуйте restart policy On Failure. Для завершення поточного запиту рекомендовано `RAILWAY_DEPLOYMENT_DRAINING_SECONDS=15`.
+4. Leave `PORT` unset: Railway supplies it automatically. Set the healthcheck path to **`/health`** and generate a public domain.
+5. Use one replica and disable Serverless/App Sleeping for continuous monitoring. Set the restart policy to On Failure. To allow the current query to finish during shutdown, set `RAILWAY_DEPLOYMENT_DRAINING_SECONDS=15`.
 
-Міграції залишаються в start command: база має відкриватися після монтування Volume. Без Volume історія може втрачатися після redeploy. Не запускайте два монітори одночасно на одній базі. Налаштуйте Volume backups. Для ручної файлової копії спершу зупиніть процес; не копіюйте лише `.db`, поки активний WAL.
+Keep migrations in the start command so the database opens after the Volume is mounted. Without a Volume, history may be lost after a redeploy. Run only one monitor against a database at a time. Configure Volume backups. Before making a manual file copy, stop the process; do not copy only the `.db` file while WAL is active.
 
-Документація: [Railway Volumes](https://docs.railway.com/volumes), [Healthchecks](https://docs.railway.com/deployments/healthchecks), [Node detection](https://railpack.com/languages/node/).
+Documentation: [Railway Volumes](https://docs.railway.com/volumes), [Healthchecks](https://docs.railway.com/deployments/healthchecks), [Node detection](https://railpack.com/languages/node/).
 
 ## API
 
-Усі JSON endpoints — GET, `Cache-Control: no-store`.
+All JSON endpoints use GET and return `Cache-Control: no-store`.
 
 | Endpoint | Response |
 | --- | --- |
@@ -68,24 +68,24 @@ CHECK_INTERVAL=5000
 | `/api/events?limit=50` | Combined server/player event array, newest first; max 200 |
 | `/api/mods` | `reportedCount`, `totalCount`, `complete`, `mods`, `updatedAt` |
 
-Некоректний `limit` повертає 400; понад 200 обмежується до 200. Невідомий шлях — 404, інший HTTP method — 405. `/health` повертає 200, коли монітор працює, навіть якщо game server offline; зупинений монітор — 503. До першого запиту `online` / `serverOnline` — `null`, `lastCheck` — `null`. Healthcheck перевіряє працездатність монітора, а не доступність ігрового сервера.
+An invalid `limit` returns 400; values above 200 are capped at 200. Unknown paths return 404, and other HTTP methods return 405. `/health` returns 200 while the monitor is running, even if the game server is offline; a stopped monitor returns 503. Before the first query, `online`, `serverOnline`, and `lastCheck` are `null`. The healthcheck reports monitor health separately from game server availability.
 
-## Дані та семантика
+## Data and behavior
 
-- GameDig queries виконуються послідовно: завершення query, потім `CHECK_INTERVAL`. Час між початками запитів дорівнює тривалості query плюс delay. Помилка query зберігає OFFLINE/error та не зупиняє loop.
-- Players беруться з `raw.players`: `score` — zombie kills, `time` — секунди поточної сесії. `currentKills` може зменшуватися; `maxKills` — історичний максимум спостережень, а не сума kills усіх персонажів. Гравці ідентифікуються за точним name, бо A2S не дає надійного player ID. Зміна nickname створює інший запис.
-- Перший побачений гравець та повернення offline гравця створюють `join`. Зникнення з отриманого списку або query failure створює `leave`. `lastSessionSeconds` стає останнім `currentSessionSeconds`; `currentSessionSeconds` залишається останнім відомим значенням. `lastSeen` не змінюється при leave.
-- Якщо `raw.players` відсутнє, остання присутність зберігається без помилкових leave. Явний порожній масив означає, що жодного named player немає. A2S може повернути менше імен, ніж `numplayers`; UI показує це обмеження.
-- `server_up` / `server_down` створюються лише при зміні стану. Перша відповідь встановлює початковий стан і створює відповідну подію. Перезапуск не генерує зайві join/up, якщо підтверджений стан не змінився.
-- `availability = (totalChecks - failedChecks) / totalChecks * 100`. Лічильники зберігаються в одному SQLite row; таблиці кожного query немає. Ping aggregates враховують тільки успішні перевірки з валідним ping.
-- `server_samples`: один UTC bucket на хвилину, оновлюваний транзакційно на кожній перевірці. `online` — останній стан bucket; `failed_checks` зберігає проміжні failures; average ping — середнє наявних ping; average players — середнє доступних online counts; failed query не прирівнюється до нуля гравців. Немає порожніх buckets за час без моніторингу. При безперервній роботі максимум 1440 samples на добу. Події зберігаються при переходах; автоматичне видалення історії не виконується.
-- Downtime — оцінка між послідовними завершеними checks: інтервал зараховується попередньому стану. `downtimeSeconds` і `observedSeconds` persisted, але період вимкненого Node процесу не враховується. Точний момент падіння між checks невідомий. Поточний state duration рахується від останньої спостереженої зміни та може включати перерву моніторингу; це не доказ безперервної доступності. `stale` позначає старі дані.
-- Metadata при offline зберігається з останньої успішної відповіді; current ping/player count стають `null`. Час metadata відображений у UI. Невідомі flags/counts — `null`/Unknown, а не вигадані значення.
-- `raw.rules.version` має пріоритет. `modCount` — оголошений total, reported IDs — лише доступна частина; `complete` true тільки якщо count збігається. Description fragments сортуються за числовим індексом; `<LINE>` перетворюється на newline, `<RGB:…>` прибирається.
-- UI опитує API без reload, після завершення попереднього fetch cycle. Server strings проходять `escapeHtml()` або вставляються через `textContent`. Зовнішніх scripts/fonts немає. Live game time, weather, world age та інші недоступні A2S показники не додаються.
-- SIGINT/SIGTERM зупиняють timer, очікують поточний query та HTTP requests, закривають SQLite; є shutdown deadline 15 секунд. Persistence failure зупиняє процес із nonzero exit code замість продовження без запису історії.
+- GameDig queries run sequentially: each query finishes before the `CHECK_INTERVAL` delay begins. The time between query starts equals the query duration plus the delay. A query failure saves OFFLINE status and its error without stopping the loop.
+- Players come from `raw.players`: `score` represents zombie kills, and `time` represents the current session duration in seconds. `currentKills` can decrease; `maxKills` is the highest observed value, rather than the sum across characters. Players are identified by their exact names because A2S does not provide a reliable player ID. A nickname change creates a separate record.
+- A newly observed player or a returning offline player generates a `join` event. Disappearing from a returned player list or a query failure generates a `leave` event. `lastSessionSeconds` is set to the last `currentSessionSeconds`; `currentSessionSeconds` retains its last known value. A leave does not change `lastSeen`.
+- If `raw.players` is absent, the last observed presence is retained without generating false leave events. An explicit empty array means no named players are present. A2S may return fewer names than `numplayers`; the UI indicates this limitation.
+- `server_up` and `server_down` events are created only when the state changes. The first response establishes the initial state and creates the corresponding event. Restarting does not generate duplicate join/up events if the confirmed state is unchanged.
+- `availability = (totalChecks - failedChecks) / totalChecks * 100`. Counters are stored in a single SQLite row; there is no row for every query. Ping aggregates include only successful checks with valid ping values.
+- `server_samples` stores one UTC bucket per minute, updated transactionally after each check. `online` is the bucket's latest state; `failed_checks` captures failures within the bucket. Average ping uses available ping values, and average players uses available online player counts. A failed query is not treated as zero players. No empty buckets are created for periods without monitoring. Continuous operation produces at most 1,440 samples per day. Events are saved on transitions, and history is not automatically deleted.
+- Downtime is estimated between consecutive completed checks, assigning each interval to the previous state. `downtimeSeconds` and `observedSeconds` persist, but time while the Node process is stopped is excluded. The exact failure time between checks is unknown. Current state duration starts at the last observed transition and may include a monitoring gap; it does not prove uninterrupted availability. `stale` marks outdated data.
+- While offline, metadata is retained from the last successful response; current ping and player count become `null`. The UI displays the metadata timestamp. Unknown flags and counts are represented as `null`/Unknown.
+- `raw.rules.version` takes precedence. `modCount` is the declared total, while reported IDs may be a partial list; `complete` is true only when the counts match. Description fragments are sorted by numeric index, `<LINE>` becomes a newline, and `<RGB:…>` is removed.
+- The UI polls the API without reloading, waiting for the previous fetch cycle to finish. Server strings are escaped with `escapeHtml()` or inserted using `textContent`. No external scripts or fonts are loaded. Live game time, weather, world age, and other values unavailable through A2S are not added.
+- SIGINT/SIGTERM stop the timer, wait for the current query and HTTP requests, and close SQLite. A 15-second shutdown deadline applies. A persistence failure stops the process with a nonzero exit code instead of continuing without saving history.
 
-## Структура
+## Project structure
 
 ```text
 server.js                 startup and shutdown
@@ -102,7 +102,7 @@ public/                   HTML, CSS, browser JavaScript
 test/monitor.test.js      persistence and monitoring tests
 ```
 
-## Перевірка
+## Verification
 
 ```sh
 npm run migrate
@@ -116,4 +116,4 @@ curl http://localhost:3000/api/status
 curl http://localhost:3000/api/leaderboard
 ```
 
-SQLite створюється автоматично разом із directory; WAL і foreign keys ввімкнені. Тести перевіряють міграції, kill reset, join/leave, offline збереження, відновлення repository, minute buckets, downtime, відсутній player list, description ordering і sequential loop після query failure.
+The SQLite file and its parent directory are created automatically. WAL and foreign keys are enabled. Tests cover migrations, kill resets, join/leave events, offline persistence, database reopening, minute buckets, downtime, missing player lists, description ordering, and sequential monitoring after a query failure.
