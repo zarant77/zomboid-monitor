@@ -1,0 +1,16 @@
+{
+  "name": "zomboid-monitor",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Persistent Project Zomboid server monitor",
+  "type": "commonjs",
+  "main": "server.js",
+  "engines": { "node": ">=24" },
+  "scripts": {
+    "migrate": "node scripts/migrate.js",
+    "start": "npm run migrate && node server.js",
+    "dev": "npm run migrate && node --watch server.js",
+    "test": "node --test"
+  },
+  "dependencies": { "gamedig": "^5.3.2" }
+}

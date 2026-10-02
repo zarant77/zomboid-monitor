@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>28 Kills Later · Server Monitor</title><link rel="stylesheet" href="/styles.css"><script src="/app.js" defer></script></head>
+<body><main>
+<header><div class="eyebrow">PROJECT ZOMBOID / LIVE MONITOR</div><div class="heading"><h1>28 Kills Later</h1><span id="status" class="badge">WAITING</span></div><p id="refresh" role="status">Connecting to monitor…</p></header>
+<section class="card server"><h2>Server</h2><h3 id="name">Waiting for first check</h3><p id="address" class="muted"></p><p id="error" role="status"></p><div class="metrics" id="server-metrics"></div></section>
+<div class="columns"><section class="card"><h2>Online Players <span id="online-count" class="muted"></span></h2><div class="table-wrap"><table><thead><tr><th>Player</th><th>Kills</th><th>Session</th></tr></thead><tbody id="players"></tbody></table></div><p id="players-note" class="muted"></p></section>
+<section class="card"><h2>Statistics</h2><div class="metrics" id="stats"></div><p id="state-time" class="muted"></p><h3 class="small">Players · last 60 sampled minutes</h3><div id="history" class="history" aria-label="Player count history"></div></section></div>
+<section class="card"><div class="heading"><h2>Leaderboard</h2><span class="muted">Highest observed kills · all players</span></div><div class="table-wrap"><table><thead><tr><th>#</th><th>Player</th><th>Kills</th><th>Status</th><th>Last seen</th></tr></thead><tbody id="leaderboard"></tbody></table></div></section>
+<div class="columns"><section class="card"><h2>Recent Events</h2><div class="table-wrap"><table><thead><tr><th>Time</th><th>Type</th><th>Description</th></tr></thead><tbody id="events"></tbody></table></div></section>
+<section class="card"><h2>Mods</h2><h3 id="mods-count">Unknown</h3><p id="mods-note" class="muted"></p><div id="mods" class="tags"></div></section></div>
+<section class="card"><h2>Server Info</h2><p id="info-details" class="muted"></p><div id="description" class="description">No description reported.</div></section>
+<footer>Checks run sequentially · browser refresh every 5 seconds · history persisted in SQLite</footer>
+</main></body></html>
