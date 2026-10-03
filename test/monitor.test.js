@@ -68,16 +68,16 @@ test('offline leaderboard survives closing and reopening a SQLite file', t => {
     assert.equal(db.prepare('PRAGMA integrity_check').get().integrity_check,'ok');
   } finally { db.close(); }
 });
-test('tracked gain uses only positive deltas, keeps maximum and session metrics', t => {
+test('tracked gain is net change from baseline, keeps maximum and session metrics', t => {
   const r=setup(t);
   const start='2026-10-03T00:00:';
   for(const [i,kills] of [100,120,150,5,25].entries())r.record(state(kills,20+i*10),`${start}${String(i*5).padStart(2,'0')}.000Z`);
-  const p=r.players()[0];assert.equal(p.trackedKillGain,70);assert.equal(p.maxKills,150);
+  const p=r.players()[0];assert.equal(p.trackedKillGain,0);assert.equal(p.maxKills,150);
   assert.equal(p.currentKills,25);assert.equal(p.longestSessionSeconds,60);assert.equal(p.joinCount,1);
   r.record({online:false,error:'timeout'},'2026-10-03T00:01:00.000Z');
   r.record(state(30,10),'2026-10-03T00:01:10.000Z');
   const detail=r.player(p.id);assert.equal(detail.joinCount,2);assert.equal(detail.longestSessionSeconds,60);
-  assert.equal(detail.trackedKillGain,75);assert.equal(detail.joinedAt,'2026-10-03T00:01:10.000Z');
+  assert.equal(detail.trackedKillGain,0);assert.equal(detail.joinedAt,'2026-10-03T00:01:10.000Z');
   assert.equal(detail.events.length,3);
 });
 test('new migration preserves old records and backfills only known session data', t => {
@@ -114,4 +114,25 @@ test('long names and HTML characters are retained as data', t => {
   const r=setup(t),name='<img src=x onerror=alert(1)> & "very long player name"';
   const s=normalize({ping:80,numplayers:1,raw:{players:[{name,score:3001,time:5}]}},config);
   r.record(s);assert.equal(r.players()[0].name,name);assert.equal(r.player(r.players()[0].id).name,name);
+});
+
+test('death and journal restoration use latest kills and do not inflate net gain', t => {
+  const r=setup(t);
+  for(const [i,kills] of [3400,3500,0,3000,3100,3500,3510].entries()){
+    r.record(state(kills),new Date(Date.UTC(2026,9,4,0,0,i*5)).toISOString());
+    assert.equal(r.players()[0].currentKills,kills);
+    assert.equal(r.players()[0].trackedKillGain,Math.max(0,kills-3400));
+  }
+  r.record(state(3000));
+  const other=state(3200);other.playerList[0].name='Other';r.record(other);
+  assert.deepEqual(r.players().map(p=>p.name),['Other','Ryder']);
+  assert.equal(r.player(r.players()[1].id).maxKills,3510);
+  const restarted=new Repository(r.db,config);restarted.record(state(3100));
+  assert.equal(restarted.players().find(p=>p.name==='Ryder').trackedKillGain,0);
+});
+test('gain correction migration preserves history and resets only unreliable gain once',t=>{
+  const r=setup(t);r.record(state(3000));
+  r.db.exec("UPDATE players SET tracked_kill_gain=9000,max_kills=3500; ALTER TABLE players DROP COLUMN kill_gain_baseline; DELETE FROM schema_migrations WHERE name='004_kill_gain_baseline.sql'");
+  migrate(r.db);const p=r.players()[0];assert.equal(p.trackedKillGain,0);assert.equal(p.maxKills,3500);assert.equal(r.player(p.id).events.length,1);
+  r.record(state(3010));migrate(r.db);assert.equal(r.players()[0].trackedKillGain,10);
 });

@@ -27,14 +27,14 @@ class Repository {
         for (const p of list) {
           const existing = db.prepare('SELECT * FROM players WHERE name=?').get(p.name);
           db.prepare(`INSERT INTO players(name,first_seen,last_seen,current_kills,max_kills,online,current_session_seconds,
-            longest_session_seconds,join_count,gain_tracked_since)
-            VALUES(?,?,?,?,?,1,?,?,1,?) ON CONFLICT(name) DO UPDATE SET last_seen=excluded.last_seen,
+            longest_session_seconds,join_count,gain_tracked_since,kill_gain_baseline)
+            VALUES(?,?,?,?,?,1,?,?,1,?,?) ON CONFLICT(name) DO UPDATE SET last_seen=excluded.last_seen,
             current_kills=excluded.current_kills,max_kills=MAX(players.max_kills,excluded.max_kills),
             online=1,current_session_seconds=excluded.current_session_seconds,
-            tracked_kill_gain=players.tracked_kill_gain+MAX(0,excluded.current_kills-players.current_kills),
+            tracked_kill_gain=MAX(0,excluded.current_kills-players.kill_gain_baseline),
             longest_session_seconds=MAX(players.longest_session_seconds,excluded.current_session_seconds),
             join_count=players.join_count+CASE WHEN players.online=0 THEN 1 ELSE 0 END`).run(
-              p.name, at, at, p.kills, p.kills, p.sessionSeconds, p.sessionSeconds, at);
+              p.name, at, at, p.kills, p.kills, p.sessionSeconds, p.sessionSeconds, at, p.kills);
           if (!existing?.online) {
             const id = existing?.id ?? db.prepare('SELECT id FROM players WHERE name=?').get(p.name).id;
             db.prepare('INSERT INTO player_events(player_id,event_type,created_at,kills,session_seconds) VALUES(?,?,?,?,?)')
@@ -85,7 +85,7 @@ class Repository {
     return this.db.prepare(`SELECT p.*,
       (SELECT created_at FROM player_events WHERE player_id=p.id AND event_type='join'
         ORDER BY created_at DESC,id DESC LIMIT 1) AS joined_at
-      FROM players p ${where} ORDER BY max_kills DESC,name`).all();
+      FROM players p ${where} ORDER BY current_kills DESC,name`).all();
   }
   mapPlayer(p) {
     return { id: p.id, name: p.name, currentKills: p.current_kills, maxKills: p.max_kills,

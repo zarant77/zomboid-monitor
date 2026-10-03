@@ -17,7 +17,7 @@
       Array.from(tr.children).forEach((cell,i)=>cell.dataset.label=t(labels[i]));tr.children[2].dataset.killsLabel=t('kills');
       const cells=tr.children;cells[0].textContent=leaderboard?rankMap.get(p.id):index+1;
       cells[1].querySelector('.dot').className=`dot ${p.online ? 'green' : ''}`;
-      cells[2].textContent=number(leaderboard?p.maxKills:p.currentKills);
+      cells[2].textContent=number(p.currentKills);
       if(leaderboard){
         const markup=statusMarkup(p.online);if(cells[3].innerHTML!==markup)cells[3].innerHTML=markup;
         cells[4].textContent=p.online?t("Now"):timestamp(p.lastSeen);cells[5].textContent=timestamp(p.firstSeen);

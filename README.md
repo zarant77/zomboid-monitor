@@ -63,7 +63,7 @@ All JSON endpoints use GET and return `Cache-Control: no-store`.
 | `/health` | Monitor health: `status`, `monitorRunning`, `lastCheck`, `serverOnline` |
 | `/api/status` | Current server state, metadata, error, updatedAt, metadataUpdatedAt, stale |
 | `/api/players` | Last observed online named players |
-| `/api/leaderboard` | All tracked players, ordered by `maxKills DESC`, then name |
+| `/api/leaderboard` | All tracked players, ordered by `currentKills DESC`, then name |
 | `/api/stats` | Status, counters, availability, ping aggregates, peak, tracked players, state duration, downtime, latest 60 minute samples |
 | `/api/events?limit=50` | Combined server/player event array, newest first; max 200 |
 | `/api/history?period=24h` | Weighted sample history and period summary; periods: `24h`, `7d`, `30d` |
@@ -93,7 +93,7 @@ The dashboard uses vanilla HTML/CSS/JavaScript with a dark survival theme, a her
 
 The default statistics period is 24 hours; 7-day and 30-day views are also available. Period metrics use the real checks accumulated in minute samples. Tracked player count is always the all-time total and is labeled accordingly. History is grouped into 10-minute, 1-hour, or 4-hour buckets, returning at most approximately 145, 169, or 181 points. Averages are weighted by their source check counts. Missing periods are left empty; the chart does not invent observations. Time-window boundaries use available minute samples.
 
-Migration `003_player_tracking.sql` adds `tracked_kill_gain`, `longest_session_seconds`, `join_count`, and `gain_tracked_since` without deleting any player or event records. The longest known session and existing join count are backfilled from stored values and events. Historical kill gain cannot be reconstructed from maxima, so existing players start at zero gain when this migration is applied. New players also start at zero gain; their initial score is a baseline. Subsequent positive score deltas accumulate, while decreases contribute zero. For example, `100 → 120 → 150 → 5 → 25` produces a gain of 70 and a maximum of 150. Changes between observations cannot be reconstructed if the score resets and rises again before the next check.
+Migration `003_player_tracking.sql` adds `tracked_kill_gain`, `longest_session_seconds`, `join_count`, and `gain_tracked_since` without deleting any player or event records. The longest known session and existing join count are backfilled from stored values and events. Historical kill gain cannot be reconstructed from maxima, so existing players start at zero gain when this migration is applied. New players also start at zero gain; their initial score is a baseline.
 
 `joinedAt` is the latest observed join timestamp for an online player, not an inferred login time. Observed sessions and join count both represent recorded joins; outages may split one actual session into multiple observed sessions. Longest session uses the highest duration actually reported by A2S. The player chart shows join/leave snapshots, not a continuous score history.
 
@@ -162,3 +162,7 @@ curl http://localhost:3000/api/player/1
 ## Localization
 
 The dashboard supports English and Ukrainian. UI strings live in `public/locales/en.json` and `public/locales/uk.json`. The header language buttons apply translations immediately, including dates, numbers, chart tooltips, events, and player details. An explicit choice is stored under `zomboid-monitor.language` in localStorage and overrides the browser language on subsequent visits. Without a saved choice, Ukrainian browsers use Ukrainian; other browsers use English. Server names (including the hero subtitle), descriptions/MOTD, player names, mod IDs, versions, and other server-provided text remain as reported by the game server. Only interface labels and messages are translated. Initial HTML and social metadata are rendered in English for crawlers and visitors without JavaScript.
+
+## Kill restoration correction
+
+Migration 004 starts a fresh net-gain baseline at each existing player’s latest score and clears the unreliable accumulated positive-delta gain once. Player records, event history, sessions, and historical maxima are preserved. Gain is now `max(0, currentKills - baseline)`: decreases reduce it, and restoring lost kills does not count them again. The leaderboard displays and sorts by latest observed kills; the historical maximum remains in player details. A2S cannot distinguish journal restoration from actual kills when a decrease occurs entirely between polls. Deploy normally with `npm start` to apply the migration.
