@@ -1,5 +1,5 @@
 (() => {
-  const { $,timestamp,number,ping }=ZM;
+  const { $,timestamp,number,ping ,t}=ZM;
   let samples=[],current=null,period='24h',range=null;
   const ns='http://www.w3.org/2000/svg', W=520,H=160,left=30,right=485,top=12,bottom=132;
   function element(tag,attrs,text) {
@@ -10,7 +10,7 @@
   }
   function renderChart(history) {
     samples=history.samples;period=history.period;range=[Date.parse(history.from),Date.parse(history.to)];
-    const svg=$('chart'); svg.replaceChildren();
+    const svg=$('chart'); svg.setAttribute('aria-label',t('Player count bars and ping line. Use arrow keys to inspect historical samples.'));svg.replaceChildren();
     $('chart-empty').hidden=samples.length>0;
     if (!samples.length) { current=null; $('chart-tooltip').hidden=true; }
     const playerMax=Math.max(5,...samples.map(s=>s.avgPlayers ?? 0));
@@ -25,7 +25,7 @@
     }
     for(let i=0;i<=4;i++) {
       const px=left+i/4*(right-left), date=new Date(range[0]+i/4*(range[1]-range[0]));
-      const label=period==='24h' ? date.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}) : date.toLocaleDateString('en-GB',{day:'2-digit',month:'short'});
+      const label=period==='24h' ? date.toLocaleTimeString(ZM.locale(),{hour:'2-digit',minute:'2-digit'}) : date.toLocaleDateString(ZM.locale(),{day:'2-digit',month:'short'});
       svg.append(element('text',{x:px,y:151,'text-anchor':'middle',class:'chart-axis'},label));
     }
     const width=Math.max(.7,Math.min(18,history.bucketSeconds*1000/(range[1]-range[0])*(right-left)*.75));
@@ -51,13 +51,13 @@
   function showTooltip(index) {
     if(index<0 || !samples.length) return;
     current=index;const s=samples[index],tip=$('chart-tooltip');
-    tip.textContent=`${timestamp(s.createdAt)}\nPlayers: ${number(s.avgPlayers)} · Ping: ${ping(s.avgPing)}\nChecks: ${s.checks} · Failures: ${s.failedChecks}`;tip.hidden=false;
+    tip.textContent=t('chartTooltip',{date:timestamp(s.createdAt),players:number(s.avgPlayers),ping:ping(s.avgPing),checks:number(s.checks),failures:number(s.failedChecks)});tip.hidden=false;
     const x=left+(Date.parse(s.createdAt)-range[0])/(range[1]-range[0])*(right-left);
     const cursor=$('chart-cursor');cursor.setAttribute('x1',x);cursor.setAttribute('x2',x);cursor.setAttribute('visibility','visible');
   }
   function setupChart() {
     const chart=$('chart');chart.setAttribute('tabindex','0');
-    chart.setAttribute('aria-label','Player count bars and ping line. Use arrow keys to inspect historical samples.');
+    chart.setAttribute('aria-label',t("Player count bars and ping line. Use arrow keys to inspect historical samples."));
     const inspectPointer=event=>{
       if(!samples.length)return;const rect=chart.getBoundingClientRect(),x=(event.clientX-rect.left)/rect.width*W;
       const target=range[0]+(x-left)/(right-left)*(range[1]-range[0]);

@@ -158,3 +158,7 @@ curl 'http://localhost:3000/api/history?period=30d'
 # Use an id returned by /api/leaderboard:
 curl http://localhost:3000/api/player/1
 ```
+
+## Localization
+
+The dashboard supports English and Ukrainian. UI strings live in `public/locales/en.json` and `public/locales/uk.json`. The header language buttons apply translations immediately, including dates, numbers, chart tooltips, events, and player details. An explicit choice is stored under `zomboid-monitor.language` in localStorage and overrides the browser language on subsequent visits. Without a saved choice, Ukrainian browsers use Ukrainian; other browsers use English. Server descriptions, player names, and mod IDs remain as reported by the game server. Initial HTML and social metadata are rendered in English for crawlers and visitors without JavaScript.

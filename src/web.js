@@ -1,7 +1,24 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const publicPath = path.join(__dirname, '../public');
+const english = require('../public/locales/en.json');
+const escape = value => String(value).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
+function renderEnglish(html) {
+  html=html.replace(/<(span|title)([^>]*data-i18n="([^"]+)"[^>]*)><\/\1>/g,(_,tag,attrs,key)=>`<${tag}${attrs}>${escape((english[key] ?? key).replace('{period}',english.period24h))}</${tag}>`);
+  return html.replace(/<[^>]+data-i18n-(?:content|aria-label|title)=[^>]+>/g,tag=>{
+    for(const attr of ['content','aria-label','title']) {
+      const match=tag.match(new RegExp(`data-i18n-${attr}="([^"]+)"`));if(!match)continue;
+      const value=escape(english[match[1]] ?? match[1]);
+      const pattern=new RegExp(`(?<![\\w-])${attr}="[^"]*"`);
+      tag=pattern.test(tag)?tag.replace(pattern,`${attr}="${value}"`):tag.replace(/>$/,` ${attr}="${value}">`);
+    }
+    return tag;
+  });
+}
 const definitions = [
+  ['/js/i18n.js', 'js/i18n.js', 'text/javascript; charset=utf-8'],
+  ['/locales/en.json', 'locales/en.json', 'application/json; charset=utf-8'],
+  ['/locales/uk.json', 'locales/uk.json', 'application/json; charset=utf-8'],
   ['/', 'index.html', 'text/html; charset=utf-8'],
   ['/index.html', 'index.html', 'text/html; charset=utf-8'],
   ['/app.js', 'app.js', 'text/javascript; charset=utf-8'],
@@ -28,7 +45,7 @@ function serveAsset(pathname, res) {
   res.writeHead(200, { 'Content-Type': asset.mime, 'Cache-Control': 'no-cache' });
   if (pathname === '/' || pathname === '/index.html') {
     const hero = assets.has('/hero.png') ? '/hero.png' : assets.has('/hero.jpg') ? '/hero.jpg' : '';
-    res.end(asset.content.toString().replace('data-hero=""', `data-hero="${hero}"`));
+    res.end(renderEnglish(asset.content.toString()).replace('data-hero=""', `data-hero="${hero}"`));
   } else res.end(asset.content);
   return true;
 }

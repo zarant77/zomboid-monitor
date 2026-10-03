@@ -2,21 +2,21 @@ window.ZM = {};
 (() => {
   const $ = id => document.getElementById(id);
   const escapeHtml = value => String(value ?? '—').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;');
-  const number = value => value == null ? '—' : new Intl.NumberFormat('en-US',{maximumFractionDigits:1}).format(value);
-  const timestamp = value => value ? new Date(value).toLocaleString('en-GB',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'}).replaceAll('/', '.') : '—';
-  const time = value => value ? new Date(value).toLocaleTimeString('en-GB',{hour12:false}) : '—';
+  const number = value => value == null ? '—' : new Intl.NumberFormat(ZM.locale(),{maximumFractionDigits:1}).format(value);
+  const timestamp = value => value ? new Date(value).toLocaleString(ZM.locale(),{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'}).replaceAll('/', '.') : '—';
+  const time = value => value ? new Date(value).toLocaleTimeString(ZM.locale(),{hour12:false}) : '—';
   const duration = value => {
     if (value == null) return '—';
     const seconds = Math.floor(value), m = Math.floor(seconds%3600/60);
-    return seconds>=3600 ? `${Math.floor(seconds/3600)}h ${m}m` : `${m}m ${seconds%60}s`;
+    return seconds>=3600 ? ZM.t('durationHours',{hours:Math.floor(seconds/3600),minutes:m}) : ZM.t('durationMinutes',{minutes:m,seconds:seconds%60});
   };
-  const bool = value => value == null ? 'Unknown' : value ? 'Yes' : 'No';
-  const ping = value => value == null ? '—' : `${Math.round(value)} ms`;
+  const bool = value => ZM.t(value == null ? 'Unknown' : value ? 'Yes' : 'No');
+  const ping = value => value == null ? '—' : ZM.t('pingValue',{value:ZM.number(Math.round(value))});
   const icon = name => `<svg class="icon" aria-hidden="true"><use href="#i-${name}"/></svg>`;
   function text(id,value) { const node = $(id), next = String(value ?? '—'); if (node.textContent!==next) node.textContent=next; }
   async function get(endpoint) {
     const response = await fetch(`/api/${endpoint}`,{cache:'no-store',signal:AbortSignal.timeout(10000)});
-    if (!response.ok) throw new Error(`${endpoint}: HTTP ${response.status}`);
+    if (!response.ok) throw new Error(ZM.t('apiError',{endpoint,status:response.status}));
     return response.json();
   }
   function keyed(container,items,key,create,update) {

@@ -140,14 +140,6 @@ h3 {
 .online .status-dot {
   box-shadow:0 0 0 5px #00e68b22
 }
-.check-time {
-  display:grid;
-  gap:2px;
-  border-left:1px solid #78929d40;
-  padding-left:18px;
-  color:var(--muted);
-  font-size:12px
-}
 .connection-message:empty,.error:empty,.note:empty {
   display:none
 }
@@ -887,10 +879,6 @@ dialog::backdrop {
   .live-status {
     font-size:22px
   }
-  .check-time {
-    font-size:10px;
-    padding-left:12px
-  }
   .primary-grid,.bottom-grid {
     grid-template-columns:1fr;
     gap:0
@@ -1045,7 +1033,7 @@ dialog::backdrop {
     font-size:15px!important
   }
   .leaderboard-table td:nth-child(3)::after {
-    content:'kills';
+    content:attr(data-kills-label);
     color:var(--muted);
     font-size:11px;
     align-self:center
@@ -1102,9 +1090,6 @@ dialog::backdrop {
   .live-status {
     font-size:20px
   }
-  .check-time {
-    padding-left:10px
-  }
   .online-table td:nth-child(5),.online-table th:nth-child(5) {
     display:none
   }
@@ -1127,3 +1112,20 @@ dialog::backdrop {
     transition:none!important
   }
 }
+
+.language-switcher {position:absolute;top:20px;right:20px;display:flex;gap:5px;padding:4px;border:1px solid var(--border);border-radius:12px;background:#061015d9;z-index:2}
+.language-switcher button {display:flex;align-items:center;gap:6px;padding:7px 9px;border:1px solid transparent;border-radius:8px;background:transparent;color:var(--muted);font-size:11px;letter-spacing:.05em;cursor:pointer}
+.language-switcher svg {width:24px;height:18px;opacity:.65}
+.language-switcher button[aria-pressed="true"] {background:#00d58c18;border-color:#00d58c66;color:var(--text)}
+.language-switcher button[aria-pressed="true"] svg,.language-switcher button:hover svg {opacity:1}
+.language-switcher button:focus-visible {outline:2px solid var(--green);outline-offset:2px}
+@media(max-width:600px){.language-switcher{top:12px;right:12px}.language-switcher button{padding:6px}.language-switcher button span{display:none}.brand{padding-right:90px}}
+
+.status-marker {position:relative;display:grid;place-items:center;width:32px;height:32px;flex-shrink:0}
+.status-marker .status-dot {box-shadow:none}
+.refresh-ring {position:absolute;inset:0;width:32px;height:32px;fill:none;stroke:currentColor;stroke-width:1.5;transform:rotate(-90deg)}
+.refresh-track {opacity:.18}
+#refresh-progress {stroke-dasharray:100;stroke-dashoffset:100;stroke-linecap:round}
+.status-marker.refreshing .refresh-ring {animation:refresh-spin 1s linear infinite}
+@keyframes refresh-spin {to {transform:rotate(270deg)}}
+@media(prefers-reduced-motion:reduce){.status-marker.refreshing .refresh-ring{animation:none}}
