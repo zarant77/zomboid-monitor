@@ -5,7 +5,7 @@
   function renderServer(s) {
     const label=s.online==null?t("WAITING"):s.stale?t("STALE"):s.online?t("ONLINE"):t("OFFLINE");
     text('status-label',label);$('status').className=`live-status ${s.stale||s.online==null?'waiting':s.online?'online':'offline'}`;
-    text('server-name',s.name);text('address',`${s.host}:${s.port}`);
+    text('hero-subtitle',s.name);text('server-name',s.name);text('address',`${s.host}:${s.port}`);
     text('server-error',s.error || (s.stale?t("Waiting for a fresh monitor check."):''));
     const badges=[
       {key:'pvp',label:s.pvp==null?t("PvP unknown"):s.pvp?t('PvP'):t("PvE"),good:s.pvp===false,icon:'swords'},
