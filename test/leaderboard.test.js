@@ -24,3 +24,18 @@ test('missing metrics stay last and ties are deterministic',()=>{
   const list=[{id:1,name:'Zed',deaths:2},{id:2,name:'Amy',deaths:2},{id:3,name:'Unknown'}];
   for(const direction of ['asc','desc'])assert.deepEqual(Array.from(sort(list,'deaths',direction,'en'),p=>p.id),[2,1,3]);
 });
+
+test('record holders show historical kills, all ties and no fabricated zero records',()=>{
+  const records=context.ZM.playerRecords([
+    {...players[0],maxKills:500,bestSessionKills:40},
+    {...players[1],maxKills:500,bestSessionKills:80},
+    {...players[2],maxKills:100,bestSessionKills:80}
+  ]);
+  assert.deepEqual(Array.from(records[0].winners,p=>p.id),[2,1]);
+  assert.equal(records[0].value,500);
+  assert.equal(records[1].winners[0].id,3);
+  assert.deepEqual(Array.from(records[2].winners,p=>p.id),[2,3]);
+  assert.equal(records[3].winners[0].id,3);
+  for(const r of context.ZM.playerRecords([]))assert.equal(r.winners.length,0);
+  for(const r of context.ZM.playerRecords([{id:1,name:'New',maxKills:0,deaths:0,bestSessionKills:0,longestSessionSeconds:0}]))assert.equal(r.winners.length,0);
+});

@@ -39,10 +39,37 @@
       return comparison*(direction==='asc'?1:-1)||collator.compare(a.name,b.name)||a.id-b.id;
     });
   }
+  function playerRecords(players) {
+    return [
+      {key:'maxKills',label:'Most kills'},
+      {key:'longestSessionSeconds',label:'Longest session',isDuration:true},
+      {key:'bestSessionKills',label:'Most kills in one session'},
+      {key:'deaths',label:'Most deaths'}
+    ].map(record=>{
+      const value=Math.max(0,...players.map(p=>p[record.key]??0));
+      return {...record,value,winners:value>0?players.filter(p=>p[record.key]===value).sort((a,b)=>a.name.localeCompare(b.name)):[]};
+    });
+  }
+  function renderRecords(players) {
+    keyed($('player-records'),playerRecords(players),r=>r.key,()=>{
+      const node=document.createElement('article');node.className='record-card';
+      node.innerHTML='<h3></h3><strong class="record-value"></strong><div class="record-winners"></div>';return node;
+    },(node,r)=>{
+      node.querySelector('h3').textContent=t(r.label);
+      node.querySelector('.record-value').textContent=r.winners.length?(r.isDuration?duration(r.value):number(r.value)):'—';
+      const winners=node.querySelector('.record-winners');
+      keyed(winners,r.winners.length?r.winners:[{id:'empty'}],p=>p.id,p=>{
+        const element=document.createElement(p.id==='empty'?'span':'button');
+        if(p.id!=='empty'){element.type='button';element.className='player-button';element.dataset.playerId=p.id;}
+        return element;
+      },(element,p)=>{element.textContent=p.id==='empty'?t('No record yet'):p.name;});
+    });
+  }
   function renderDetails(player) {
     details=player;$('player-dialog-title').textContent=player.name;
     $('player-dialog-status').innerHTML=statusMarkup(player.online);
     metrics($('player-details'),[
+      {label:t("Most kills in one session"),value:number(player.bestSessionKills)},
       {label:t("Deaths"),value:number(player.deaths)},
       {label:t("Current kills"),value:number(player.currentKills)}, {label:t("Highest observed kills"),value:number(player.maxKills)},
       {label:t("Tracked kill gain"),value:`+${number(player.trackedKillGain)}`,tone:'tone-green'},
@@ -83,5 +110,5 @@
     });
     dialog.addEventListener('close',()=>{selectedId=null;details=null;if(opener?.isConnected)opener.focus();opener=null;});
   }
-  Object.assign(ZM,{sortLeaderboard,tableRows,setupPlayers,refreshPlayer,relocalizePlayer:()=>{if(details)renderDetails(details);}});
+  Object.assign(ZM,{playerRecords,renderRecords,sortLeaderboard,tableRows,setupPlayers,refreshPlayer,relocalizePlayer:()=>{if(details)renderDetails(details);}});
 })();

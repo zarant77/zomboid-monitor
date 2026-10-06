@@ -154,3 +154,17 @@ test('gain correction migration preserves history and resets only unreliable gai
   assert.equal(r.db.prepare('PRAGMA integrity_check').get().integrity_check,'ok');
   assert.deepEqual(r.db.prepare('PRAGMA foreign_key_check').all(),[]);
 });
+
+test('session kill records preserve peaks across deaths, restores and monitor restarts', t => {
+  let r=setup(t);
+  for(const [i,kills] of [1000,1100,0,770,1100,1120].entries()) {
+    r.record(state(kills,20+i*5),new Date(Date.UTC(2026,9,6,0,0,i*5)).toISOString());
+  }
+  assert.equal(r.players()[0].bestSessionKills,120);
+  r=new Repository(r.db,config);r.record(state(1130,55));
+  assert.equal(r.player(r.players()[0].id).bestSessionKills,130);
+  r.record({online:false,error:'timeout'});r.record(state(1130,10));r.record(state(1140,15));
+  assert.equal(r.players()[0].bestSessionKills,130);
+  r.record(state(1140,5));r.record(state(1340,10));
+  assert.equal(r.players()[0].bestSessionKills,200);
+});

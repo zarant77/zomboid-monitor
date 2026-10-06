@@ -35,6 +35,11 @@ class Repository {
             longest_session_seconds=MAX(players.longest_session_seconds,excluded.current_session_seconds),
             join_count=players.join_count+CASE WHEN players.online=0 THEN 1 ELSE 0 END`).run(
               p.name, at, at, p.kills, p.kills, p.sessionSeconds, p.sessionSeconds, at, p.kills);
+          const sessionBaseline = !existing?.online || p.sessionSeconds < existing.current_session_seconds
+            ? p.kills : existing.session_kill_baseline;
+          db.prepare(`UPDATE players SET session_kill_baseline=?,
+            best_session_kills=MAX(best_session_kills,MAX(0,?-?)) WHERE name=?`)
+            .run(sessionBaseline, p.kills, sessionBaseline, p.name);
           if (existing && p.kills < existing.current_kills) {
             db.prepare('UPDATE players SET death_count=death_count+1 WHERE id=?').run(existing.id);
             db.prepare('INSERT INTO player_events(player_id,event_type,created_at,kills,session_seconds) VALUES(?,?,?,?,?)')
@@ -93,7 +98,7 @@ class Repository {
       FROM players p ${where} ORDER BY current_kills DESC,name`).all();
   }
   mapPlayer(p) {
-    return { id: p.id, name: p.name, currentKills: p.current_kills, maxKills: p.max_kills, deaths: p.death_count,
+    return { id: p.id, name: p.name, currentKills: p.current_kills, maxKills: p.max_kills, deaths: p.death_count, bestSessionKills: p.best_session_kills,
       online: Boolean(p.online), firstSeen: p.first_seen, lastSeen: p.last_seen,
       currentSessionSeconds: p.current_session_seconds, lastSessionSeconds: p.last_session_seconds,
       longestSessionSeconds: p.longest_session_seconds, trackedKillGain: p.tracked_kill_gain,

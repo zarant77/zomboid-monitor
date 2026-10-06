@@ -1149,3 +1149,11 @@ dialog::backdrop {
 .sort-heading:hover, .leaderboard-table th[aria-sort] { color: var(--green); }
 .sort-heading:focus-visible { outline: 2px solid var(--green); outline-offset: 4px; }
 .sort-arrow { font-size: 11px; }
+
+.records-grid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 16px; }
+.record-card { padding: 18px; border: 1px solid var(--border); border-radius: 8px; }
+.record-card h3 { font-size: 12px; color: var(--muted); margin: 0 0 12px; }
+.record-value { display: block; font-size: 26px; color: var(--green); margin-bottom: 12px; }
+.record-winners { display: flex; flex-wrap: wrap; gap: 8px 12px; overflow-wrap: anywhere; }
+@media (max-width: 900px) { .records-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+@media (max-width: 480px) { .records-grid { grid-template-columns: 1fr; } }

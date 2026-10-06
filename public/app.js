@@ -35,6 +35,7 @@
     safeDescription($('description'),s.description || t("No description reported."));
   }
   function renderPlayers() {
+    ZM.renderRecords(state.board);
     ZM.tableRows('players',state.players.slice().sort((a,b)=>b.currentKills-a.currentKills));
     text('online-count',`(${state.players.length})`);
     const s=state.status;

@@ -182,5 +182,12 @@
   "eventDeath": "Died",
   "playerDeath": "{name} died",
   "deathNote": "Deaths are counted from observed decreases in kills since death tracking started.",
-  "Click a column heading to sort.": "Click a column heading to sort."
+  "Click a column heading to sort.": "Click a column heading to sort.",
+  "Record holders": "Record holders",
+  "Most kills": "Most kills",
+  "Longest session": "Longest session",
+  "Most kills in one session": "Most kills in one session",
+  "Most deaths": "Most deaths",
+  "No record yet": "No record yet",
+  "recordsNote": "Records include all tracked players and tied holders. Kills use the highest observed score. Session kills use the largest net increase from the first observed score of a session; tracking starts with this update."
 }
