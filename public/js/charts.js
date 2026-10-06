@@ -51,7 +51,7 @@
   function showTooltip(index) {
     if(index<0 || !samples.length) return;
     current=index;const s=samples[index],tip=$('chart-tooltip');
-    tip.textContent=t('chartTooltip',{date:timestamp(s.createdAt),players:number(s.avgPlayers),ping:ping(s.avgPing),checks:number(s.checks),failures:number(s.failedChecks)});tip.hidden=false;
+    tip.textContent=t('chartTooltip',{date:timestamp(s.createdAt),players:number(s.avgPlayers==null?null:Math.round(s.avgPlayers)),ping:ping(s.avgPing),checks:number(s.checks),failures:number(s.failedChecks)});tip.hidden=false;
     const x=left+(Date.parse(s.createdAt)-range[0])/(range[1]-range[0])*(right-left);
     const cursor=$('chart-cursor');cursor.setAttribute('x1',x);cursor.setAttribute('x2',x);cursor.setAttribute('visibility','visible');
   }
