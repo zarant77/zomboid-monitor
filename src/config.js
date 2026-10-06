@@ -7,6 +7,7 @@ function integer(name, fallback, max = Number.MAX_SAFE_INTEGER) {
   return value;
 }
 module.exports = {
+  serverWipeId: process.env.SERVER_WIPE_ID?.trim() || null,
   port: integer('PORT', 3000, 65535),
   host: process.env.GAME_HOST || '2.28.54.80',
   gamePort: integer('GAME_PORT', 16261, 65535),

@@ -1,7 +1,7 @@
 (async () => {
   await ZM.i18nReady;
   const {$,text,escapeHtml,icon,number,timestamp,time,duration,bool,ping,get,keyed,metrics,segments,safeDescription,t}=ZM;
-  const state={status:null,players:[],board:[],stats:null,events:[],mods:null,history:null,period:'24h',playerFilter:'all',eventFilter:'all',eventLimit:12,historyRequest:0,connectionError:null,historyError:null,feedback:null};
+  const state={status:null,players:[],board:[],stats:null,events:[],mods:null,history:null,period:'24h',playerFilter:'all',sortKey:'currentKills',sortDirection:'desc',eventFilter:'all',eventLimit:12,historyRequest:0,connectionError:null,historyError:null,feedback:null};
   function renderServer(s) {
     const label=s.online==null?t("WAITING"):s.stale?t("STALE"):s.online?t("ONLINE"):t("OFFLINE");
     text('status-label',label);$('status').className=`live-status ${s.stale||s.online==null?'waiting':s.online?'online':'offline'}`;
@@ -39,9 +39,15 @@
     text('online-count',`(${state.players.length})`);
     const s=state.status;
     text('players-note',s.online&&s.playersReported==null?t("Player list unavailable; showing last observed presence."):s.online&&s.players>state.players.length?t("Server count exceeds reported names; only named players can be tracked."):t("Joined is the time this monitor first observed the current session."));
-    const rankMap=new Map(state.board.map((p,i)=>[p.id,i+1]));
+    const rankMap=new Map(ZM.sortLeaderboard(state.board,'currentKills','desc',ZM.locale()).map((p,i)=>[p.id,i+1]));
     const filtered=state.board.filter(p=>state.playerFilter==='all'||(state.playerFilter==='online'?p.online:!p.online));
-    ZM.tableRows('leaderboard',filtered,true,rankMap);
+    ZM.tableRows('leaderboard',ZM.sortLeaderboard(filtered,state.sortKey,state.sortDirection,ZM.locale()),true,rankMap);
+    document.querySelectorAll('.leaderboard-table th[data-sort]').forEach(header=>{
+      const active=header.dataset.sort===state.sortKey;
+      if(active)header.setAttribute('aria-sort',state.sortDirection==='asc'?'ascending':'descending');
+      else header.removeAttribute('aria-sort');
+      header.querySelector('.sort-arrow').textContent=active?(state.sortDirection==='asc'?'↑':'↓'):'';
+    });
   }
   function renderStats() {
     const h=state.history,s=state.stats;if(!s)return;
@@ -110,6 +116,13 @@
       text('status-label',t("STALE"));$('status').className='live-status waiting';
     }finally{refreshMarker.classList.remove('refreshing');nextRefreshAt=performance.now()+refreshInterval;setTimeout(update,refreshInterval);}
   }
+  document.querySelector('.leaderboard-table thead').addEventListener('click',event=>{
+    const button=event.target.closest('button[data-sort]');if(!button)return;
+    const key=button.dataset.sort;
+    state.sortDirection=state.sortKey===key?(state.sortDirection==='asc'?'desc':'asc'):
+      key==='name'||key==='rank'?'asc':'desc';
+    state.sortKey=key;renderPlayers();
+  });
   $('leaderboard-filter').addEventListener('click',event=>{const b=event.target.closest('button[data-filter]');if(!b)return;state.playerFilter=b.dataset.filter;segments($('leaderboard-filter'),'filter',state.playerFilter);renderPlayers();});
   $('event-filter').addEventListener('click',event=>{const b=event.target.closest('button[data-event]');if(!b)return;state.eventFilter=b.dataset.event;state.eventLimit=12;segments($('event-filter'),'event',state.eventFilter);renderEvents();});
   $('period-filter').addEventListener('click',event=>{const b=event.target.closest('button[data-period]');if(!b)return;state.period=b.dataset.period;segments($('period-filter'),'period',state.period);state.history=null;renderStats();void loadHistory();});

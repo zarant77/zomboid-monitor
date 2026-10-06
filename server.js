@@ -1,10 +1,11 @@
 const config = require('./src/config');
-const { openDatabase, migrate } = require('./src/db');
+const { openDatabase, migrate, applyServerWipe } = require('./src/db');
 const { Repository } = require('./src/repository');
 const { Monitor } = require('./src/monitor');
 const { createServer } = require('./src/http');
 const db = openDatabase(config.databasePath);
 migrate(db);
+if (applyServerWipe(db, config.serverWipeId)) console.log(`Database reset for server wipe: ${config.serverWipeId}`);
 const repository = new Repository(db, config);
 const monitor = new Monitor(repository, config);
 const server = createServer(repository, monitor);

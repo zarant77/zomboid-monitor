@@ -181,5 +181,6 @@
   "Deaths": "Deaths",
   "eventDeath": "Died",
   "playerDeath": "{name} died",
-  "deathNote": "Deaths are counted from observed decreases in kills since death tracking started."
+  "deathNote": "Deaths are counted from observed decreases in kills since death tracking started.",
+  "Click a column heading to sort.": "Click a column heading to sort."
 }

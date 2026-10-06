@@ -1132,3 +1132,20 @@ dialog::backdrop {
 
 .event-death .event-symbol { color: var(--red); }
 .snapshot-bar.death { background: var(--red); }
+
+.sort-heading {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-transform: inherit;
+  letter-spacing: inherit;
+  cursor: pointer;
+}
+.sort-heading:hover, .leaderboard-table th[aria-sort] { color: var(--green); }
+.sort-heading:focus-visible { outline: 2px solid var(--green); outline-offset: 4px; }
+.sort-arrow { font-size: 11px; }

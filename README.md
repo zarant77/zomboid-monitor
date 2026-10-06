@@ -30,6 +30,7 @@ Migrations run automatically before startup. `server.js` also checks them when s
 | `GAME_HOST` | `2.28.54.80` | Game server IP/hostname |
 | `GAME_PORT` | `16261` | A2S query port |
 | `CHECK_INTERVAL` | `5000` | Delay in ms after a completed query |
+| `SERVER_WIPE_ID` | unset | New unique value triggers a one-time statistics reset at startup |
 | `DATABASE_PATH` | `./data/zomboid.db` | SQLite path, relative to working directory or absolute |
 
 Each database belongs to one host/port combination. Use a separate database file when monitoring another server to avoid mixing histories.
@@ -168,3 +169,11 @@ The dashboard supports English and Ukrainian. UI strings live in `public/locales
 Migration 004 starts a fresh net-gain baseline at each existing player’s latest score and clears the unreliable accumulated positive-delta gain once. Player records, event history, sessions, and historical maxima are preserved. Gain is now `max(0, currentKills - baseline)`: decreases reduce it, and restoring lost kills does not count them again. The leaderboard displays and sorts by latest observed kills; the historical maximum remains in player details. A2S cannot distinguish journal restoration from actual kills when a decrease occurs entirely between polls. Deploy normally with `npm start` to apply the migration.
 
 Migration 005 adds persistent player death counts and death events. Each observed decrease in kills counts as one death, including decreases first seen after a rejoin. Journal restores increase kills and do not add deaths. Counts begin when this migration is installed; historical deaths are not backfilled. Deaths with zero kills cannot be detected. The leaderboard, player details, and recent events show deaths.
+
+## Resetting statistics after a game server wipe
+
+After the game server has been wiped, set `SERVER_WIPE_ID` to a new unique value (for example `2026-10-06-wipe-1`) and restart/redeploy the monitor. On Railway, change this service variable and deploy with the same Volume mounted. Locally, set it in `.env` and run `npm start` after stopping the old process.
+
+A changed nonempty ID clears all players (including kills, deaths and sessions), player/server events, history samples, cached server metadata, and availability/ping counters before the first query. The new ID and the reset are committed in one SQLite transaction. Schema and migration history stay intact. The first query starts fresh tracking from the game server's current values.
+
+Keep the ID unchanged until the next wipe: ordinary restarts and redeployments with the same ID preserve statistics. An unset or blank variable does nothing. Setting it for the first time also clears existing statistics. Removing it does not clear the stored ID; restoring that same ID does not trigger another reset. Use a fresh ID for every wipe. This is an explicit operator trigger; the monitor does not infer a server wipe from player deaths. Run one monitor instance per database and perform the restart after the game server wipe is complete.
