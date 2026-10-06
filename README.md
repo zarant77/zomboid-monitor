@@ -30,6 +30,7 @@ Migrations run automatically before startup. `server.js` also checks them when s
 | `GAME_HOST` | `2.28.54.80` | Game server IP/hostname |
 | `GAME_PORT` | `16261` | A2S query port |
 | `CHECK_INTERVAL` | `5000` | Delay in ms after a completed query |
+| `SERVER_TIMEZONE` | `+01:00` | Server calendar timezone; fixed offset or IANA name such as `Europe/Berlin` |
 | `SERVER_WIPE_ID` | unset | New unique value triggers a one-time statistics reset at startup |
 | `DATABASE_PATH` | `./data/zomboid.db` | SQLite path, relative to working directory or absolute |
 
@@ -187,3 +188,11 @@ The record holders panel includes all tracked players, with all tied holders sho
 At startup, the server computes a SHA-256 version from all CSS, JavaScript, and locale JSON content. Served HTML references versioned filenames (for example `/styles.0123456789abcdef.css`); the i18n script also fetches versioned dictionaries. A change to any frontend file changes the version for the whole bundle on the next restart/deploy. Identical content keeps the same version. No separate build step is needed.
 
 Versioned assets are served with a one-year immutable cache; HTML uses `no-store` so normal reloads load the current asset URLs. Original unversioned routes remain available with `no-cache`. Deploy/restart after editing frontend files because assets are loaded into memory at startup.
+
+## Calendar-day kill gain
+
+The leaderboard and player dialog display `killGainToday`: `max(0, sum of observed signed kill changes from server-local midnight through now)`. Set `SERVER_TIMEZONE` in `.env` or Railway service variables and restart the monitor. The default `+01:00` preserves fixed GMT+1; use `Europe/Berlin` for Germany's seasonal clock changes. Other valid IANA timezones and fixed offsets are supported. Invalid timezone values fail startup. Day boundaries are independent of the monitor host timezone, including 23- and 25-hour DST days. At midnight the displayed value returns to zero, including for offline players. Existing changes remain intact when changing the timezone; the day window is recalculated. Player API responses include `serverTimezone`, used in the gain tooltip and player details.
+
+This is net score gain, not total kills across lives. Deaths subtract from the day; restoration within the same day offsets the loss. A journal restore after midnight can appear as gain if its death happened on the previous day; A2S cannot distinguish it from new kills. Initial observed kills are excluded. Migration 008 starts fresh tracking without inventing historical daily values. The previous `trackedKillGain` and rolling `killGain24h` fields remain available in the API for compatibility.
+
+Only score changes are stored, with a player/time primary key and a time index; changes older than 48 hours are pruned after each successful record transaction. Player queries calculate gain at request time. Restarts preserve changes, and `SERVER_WIPE_ID` resets them with all other observations.

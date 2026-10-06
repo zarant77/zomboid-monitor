@@ -13,7 +13,7 @@
       return tr;
     },(tr,p,index)=>{
       if(p.id==='empty'){tr.firstChild.textContent=t(leaderboard?'No matching players.':'No players online.');return;}
-      const labels=leaderboard?['Rank','Player','Kills','Status','Last seen','First seen','Best session','Gain (tracked)','Deaths']:['Rank','Player','Kills','Session','Joined'];
+      const labels=leaderboard?['Rank','Player','Kills','Status','Last seen','First seen','Best session','Gain (today)','Deaths']:['Rank','Player','Kills','Session','Joined'];
       Array.from(tr.children).forEach((cell,i)=>cell.dataset.label=t(labels[i]));tr.children[2].dataset.killsLabel=t('kills');
       const cells=tr.children;cells[0].textContent=leaderboard?rankMap.get(p.id):index+1;
       cells[1].querySelector('.dot').className=`dot ${p.online ? 'green' : ''}`;
@@ -21,9 +21,9 @@
       if(leaderboard){
         const markup=statusMarkup(p.online);if(cells[3].innerHTML!==markup)cells[3].innerHTML=markup;
         cells[4].textContent=p.online?t("Now"):timestamp(p.lastSeen);cells[5].textContent=timestamp(p.firstSeen);
-        cells[6].textContent=duration(p.longestSessionSeconds);cells[7].textContent=`+${number(p.trackedKillGain)}`;cells[7].className='gain';
+        cells[6].textContent=duration(p.longestSessionSeconds);cells[7].textContent=`+${number(p.killGainToday)}`;cells[7].className='gain';
         cells[8].textContent=number(p.deaths);
-        cells[7].title=t('gainSince',{date:timestamp(p.gainTrackedSince)});
+        cells[7].title=t('dailyGainNote',{timezone:p.serverTimezone});
       }else{cells[3].textContent=duration(p.currentSessionSeconds);cells[4].textContent=time(p.joinedAt);cells[4].title=p.joinedAt?t('joinedSince',{date:timestamp(p.joinedAt)}):t("Join time unknown");}
     });
   }
@@ -72,7 +72,7 @@
       {label:t("Most kills in one session"),value:number(player.bestSessionKills)},
       {label:t("Deaths"),value:number(player.deaths)},
       {label:t("Current kills"),value:number(player.currentKills)}, {label:t("Highest observed kills"),value:number(player.maxKills)},
-      {label:t("Tracked kill gain"),value:`+${number(player.trackedKillGain)}`,tone:'tone-green'},
+      {label:t("Gain (today)"),value:`+${number(player.killGainToday)}`,tone:'tone-green'},
       {label:t("First seen"),value:timestamp(player.firstSeen)}, {label:t("Last seen"),value:player.online?t("Now"):timestamp(player.lastSeen)},
       {label:player.online?t("Current session"):t("Last observed session"),value:duration(player.currentSessionSeconds)},
       {label:t("Longest observed session"),value:duration(player.longestSessionSeconds)},
@@ -87,7 +87,7 @@
         node.title=t('eventSnapshot',{date:timestamp(e.createdAt),event:t(e.eventType==='join'?'eventJoin':e.eventType==='death'?'eventDeath':'eventLeave'),kills:number(e.kills),duration:duration(e.sessionSeconds)});
       });
     }
-    $('player-detail-note').textContent=t('gainNote',{date:timestamp(player.gainTrackedSince)});
+    $('player-detail-note').textContent=t('dailyGainDetails',{timezone:player.serverTimezone});
   }
   async function refreshPlayer() {
     if(selectedId===null)return;

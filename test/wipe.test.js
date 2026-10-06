@@ -16,7 +16,7 @@ test('wipe resets all observations once per ID and fresh tracking starts normall
   assert.equal(applyServerWipe(db, null), false);
   assert.equal(r.players()[0].deaths, 1);
   assert.equal(applyServerWipe(db, 'wipe-1'), true);
-  for (const table of ['players', 'player_events', 'server_events', 'server_samples', 'server_state']) {
+  for (const table of ['player_kill_changes', 'players', 'player_events', 'server_events', 'server_samples', 'server_state']) {
     assert.equal(db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get().n, 0, table);
   }
   assert.deepEqual(db.prepare('SELECT * FROM schema_migrations').all(), migrations);

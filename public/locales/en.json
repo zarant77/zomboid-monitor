@@ -189,5 +189,9 @@
   "Most kills in one session": "Most kills in one session",
   "Most deaths": "Most deaths",
   "No record yet": "No record yet",
-  "recordsNote": "Records include all tracked players and tied holders. Kills use the highest observed score. Session kills use the largest net increase from the first observed score of a session; tracking starts with this update."
+  "recordsNote": "Records include all tracked players and tied holders. Kills use the highest observed score. Session kills use the largest net increase from the first observed score of a session; tracking starts with this update.",
+  "Gain (today)": "Gain (today)",
+  "dailyGainNote": "Positive net change in kills since midnight {timezone}. Deaths reduce it; a journal restore within the same day offsets the death; restores after midnight can appear as gain. Minimum: zero. Tracking starts with this update.",
+  "dailyGainDetails": "Gain is the positive net change in kills since midnight {timezone}, with a minimum of zero. Deaths reduce it; a journal restore within the same day offsets the death; restores after midnight can appear as gain. Tracking starts with this update. Sessions and joins reflect observations; outages can split a session. Bars show event snapshots.",
+  "dailyGainSummary": "Gain is measured since midnight in the configured game server timezone."
 }

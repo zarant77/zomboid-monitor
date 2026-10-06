@@ -1,5 +1,8 @@
+const { DEFAULT_SERVER_TIMEZONE, createServerDayClock } = require('./time');
 class Repository {
   constructor(db, config) {
+    this.serverTimezone = config.serverTimezone || DEFAULT_SERVER_TIMEZONE;
+    this.serverDayStart = createServerDayClock(this.serverTimezone);
     this.db = db; this.config = config; this.previousCheckTime = null;
     db.prepare('INSERT OR IGNORE INTO server_state(id,host,port) VALUES(1,?,?)').run(config.host, config.gamePort);
     const target = this.state();
@@ -35,6 +38,11 @@ class Repository {
             longest_session_seconds=MAX(players.longest_session_seconds,excluded.current_session_seconds),
             join_count=players.join_count+CASE WHEN players.online=0 THEN 1 ELSE 0 END`).run(
               p.name, at, at, p.kills, p.kills, p.sessionSeconds, p.sessionSeconds, at, p.kills);
+          if (existing && p.kills !== existing.current_kills) {
+            db.prepare(`INSERT INTO player_kill_changes(player_id,created_at,delta) VALUES(?,?,?)
+              ON CONFLICT(player_id,created_at) DO UPDATE SET delta=delta+excluded.delta`)
+              .run(existing.id, at, p.kills-existing.current_kills);
+          }
           const sessionBaseline = !existing?.online || p.sessionSeconds < existing.current_session_seconds
             ? p.kills : existing.session_kill_baseline;
           db.prepare(`UPDATE players SET session_kill_baseline=?,
@@ -81,6 +89,8 @@ class Repository {
         hasPlayers ? Math.max(sample?.max_players_seen ?? 0, result.players) : sample?.max_players_seen ?? null,
         online ? result.maxPlayers : sample?.server_max_players ?? null,
         checks, failed, pingSum, pingChecks, playersSum, successes);
+      db.prepare('DELETE FROM player_kill_changes WHERE created_at<=?')
+        .run(new Date(Date.parse(at)-48*3600000).toISOString());
       db.exec('COMMIT'); this.previousCheckTime = Date.parse(at);
     } catch (error) { db.exec('ROLLBACK'); throw error; }
   }
@@ -91,27 +101,35 @@ class Repository {
     return { online: null, name: 'Project Zomboid', host: this.config.host, port: this.config.gamePort,
       updatedAt: null, ...status, stale: !row.last_check || Date.now() - Date.parse(row.last_check) > this.config.interval + 15000 };
   }
-  playerRows(where = '') {
+  playerRows(where = '', now = Date.now()) {
     return this.db.prepare(`SELECT p.*,
+      MAX(0,COALESCE((SELECT SUM(delta) FROM player_kill_changes WHERE player_id=p.id
+        AND created_at>=? AND created_at<=?),0)) AS kill_gain_today,
+      MAX(0,COALESCE((SELECT SUM(delta) FROM player_kill_changes WHERE player_id=p.id
+        AND created_at>? AND created_at<=?),0)) AS kill_gain_24h,
       (SELECT created_at FROM player_events WHERE player_id=p.id AND event_type='join'
         ORDER BY created_at DESC,id DESC LIMIT 1) AS joined_at
-      FROM players p ${where} ORDER BY current_kills DESC,name`).all();
+      FROM players p ${where} ORDER BY current_kills DESC,name`).all(this.serverDayStart(now),new Date(now).toISOString(),new Date(now-24*3600000).toISOString(),new Date(now).toISOString());
   }
   mapPlayer(p) {
-    return { id: p.id, name: p.name, currentKills: p.current_kills, maxKills: p.max_kills, deaths: p.death_count, bestSessionKills: p.best_session_kills,
+    return { serverTimezone: this.serverTimezone, id: p.id, name: p.name, currentKills: p.current_kills, maxKills: p.max_kills, deaths: p.death_count, bestSessionKills: p.best_session_kills,
       online: Boolean(p.online), firstSeen: p.first_seen, lastSeen: p.last_seen,
       currentSessionSeconds: p.current_session_seconds, lastSessionSeconds: p.last_session_seconds,
-      longestSessionSeconds: p.longest_session_seconds, trackedKillGain: p.tracked_kill_gain,
+      longestSessionSeconds: p.longest_session_seconds, killGainToday: p.kill_gain_today, killGain24h: p.kill_gain_24h, trackedKillGain: p.tracked_kill_gain,
       gainTrackedSince: p.gain_tracked_since, joinCount: p.join_count, observedSessions: p.join_count,
       joinedAt: p.online ? p.joined_at : null };
   }
-  players(onlineOnly = false) {
-    return this.playerRows(onlineOnly ? 'WHERE p.online=1' : '').map(p => this.mapPlayer(p));
+  players(onlineOnly = false, now = Date.now()) {
+    return this.playerRows(onlineOnly ? 'WHERE p.online=1' : '', now).map(p => this.mapPlayer(p));
   }
-  player(id) {
+  player(id, now = Date.now()) {
     const row = this.db.prepare(`SELECT p.*,
+      MAX(0,COALESCE((SELECT SUM(delta) FROM player_kill_changes WHERE player_id=p.id
+        AND created_at>=? AND created_at<=?),0)) AS kill_gain_today,
+      MAX(0,COALESCE((SELECT SUM(delta) FROM player_kill_changes WHERE player_id=p.id
+        AND created_at>? AND created_at<=?),0)) AS kill_gain_24h,
       (SELECT created_at FROM player_events WHERE player_id=p.id AND event_type='join'
-        ORDER BY created_at DESC,id DESC LIMIT 1) AS joined_at FROM players p WHERE p.id=?`).get(id);
+        ORDER BY created_at DESC,id DESC LIMIT 1) AS joined_at FROM players p WHERE p.id=?`).get(this.serverDayStart(now),new Date(now).toISOString(),new Date(now-24*3600000).toISOString(),new Date(now).toISOString(),id);
     if (!row) return null;
     const events = this.db.prepare(`SELECT event_type AS eventType,created_at AS createdAt,
       kills,session_seconds AS sessionSeconds FROM player_events WHERE player_id=?

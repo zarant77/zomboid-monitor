@@ -6,13 +6,13 @@ const context={ZM:{},Intl};
 vm.runInNewContext(fs.readFileSync('public/js/players.js','utf8'),context);
 const sort=context.ZM.sortLeaderboard;
 const players=[
-  {id:1,name:'Beta',currentKills:100,deaths:2,online:false,lastSeen:'2026-10-06T12:00:00Z',firstSeen:'2026-10-01T00:00:00Z',longestSessionSeconds:90,trackedKillGain:5},
-  {id:2,name:'Alpha',currentKills:200,deaths:1,online:true,lastSeen:'2026-10-06T11:00:00Z',firstSeen:'2026-10-02T00:00:00Z',longestSessionSeconds:60,trackedKillGain:10},
-  {id:3,name:'Gamma',currentKills:50,deaths:3,online:false,lastSeen:'2026-10-06T13:00:00Z',firstSeen:'2026-10-03T00:00:00Z',longestSessionSeconds:120,trackedKillGain:0}
+  {id:1,name:'Beta',currentKills:100,deaths:2,online:false,lastSeen:'2026-10-06T12:00:00Z',firstSeen:'2026-10-01T00:00:00Z',longestSessionSeconds:90,killGainToday:5},
+  {id:2,name:'Alpha',currentKills:200,deaths:1,online:true,lastSeen:'2026-10-06T11:00:00Z',firstSeen:'2026-10-02T00:00:00Z',longestSessionSeconds:60,killGainToday:10},
+  {id:3,name:'Gamma',currentKills:50,deaths:3,online:false,lastSeen:'2026-10-06T13:00:00Z',firstSeen:'2026-10-03T00:00:00Z',longestSessionSeconds:120,killGainToday:0}
 ];
 const ids=(key,direction)=>Array.from(sort(players,key,direction,'en'),p=>p.id);
 test('leaderboard sorts each column by underlying values in both directions',()=>{
-  const ascending={rank:[2,1,3],name:[2,1,3],currentKills:[3,1,2],deaths:[2,1,3],online:[1,3,2],lastSeen:[1,3,2],firstSeen:[1,2,3],longestSessionSeconds:[2,1,3],trackedKillGain:[3,1,2]};
+  const ascending={rank:[2,1,3],name:[2,1,3],currentKills:[3,1,2],deaths:[2,1,3],online:[1,3,2],lastSeen:[1,3,2],firstSeen:[1,2,3],longestSessionSeconds:[2,1,3],killGainToday:[3,1,2]};
   for(const [key,expected] of Object.entries(ascending)){
     assert.deepEqual(ids(key,'asc'),expected,key);
     // Equal statuses use a stable alphabetical tie-break in both directions.

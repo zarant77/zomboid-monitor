@@ -31,7 +31,8 @@ function applyServerWipe(db, wipeId) {
       return false;
     }
     // Keep the schema and migration history; clear all observations together.
-    db.exec(`DELETE FROM player_events;
+    db.exec(`DELETE FROM player_kill_changes;
+      DELETE FROM player_events;
       DELETE FROM players;
       DELETE FROM server_events;
       DELETE FROM server_samples;
