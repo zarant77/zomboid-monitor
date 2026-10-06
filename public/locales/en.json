@@ -177,5 +177,9 @@
     ]
   },
   "eventJoin": "Joined",
-  "eventLeave": "Left"
+  "eventLeave": "Left",
+  "Deaths": "Deaths",
+  "eventDeath": "Died",
+  "playerDeath": "{name} died",
+  "deathNote": "Deaths are counted from observed decreases in kills since death tracking started."
 }

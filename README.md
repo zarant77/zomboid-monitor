@@ -166,3 +166,5 @@ The dashboard supports English and Ukrainian. UI strings live in `public/locales
 ## Kill restoration correction
 
 Migration 004 starts a fresh net-gain baseline at each existing player’s latest score and clears the unreliable accumulated positive-delta gain once. Player records, event history, sessions, and historical maxima are preserved. Gain is now `max(0, currentKills - baseline)`: decreases reduce it, and restoring lost kills does not count them again. The leaderboard displays and sorts by latest observed kills; the historical maximum remains in player details. A2S cannot distinguish journal restoration from actual kills when a decrease occurs entirely between polls. Deploy normally with `npm start` to apply the migration.
+
+Migration 005 adds persistent player death counts and death events. Each observed decrease in kills counts as one death, including decreases first seen after a rejoin. Journal restores increase kills and do not add deaths. Counts begin when this migration is installed; historical deaths are not backfilled. Deaths with zero kills cannot be detected. The leaderboard, player details, and recent events show deaths.

@@ -70,8 +70,8 @@
       const li=document.createElement('li');li.innerHTML='<time></time><span class="event-symbol" aria-hidden="true"></span><span class="event-message"></span>';return li;
     },(node,e)=>{
       node.className=`event-${e.eventType}`;node.children[0].textContent=time(e.createdAt);node.children[0].title=timestamp(e.createdAt);
-      node.children[1].textContent=({join:'↗',leave:'↘',server_up:'●',server_down:'!'}[e.eventType] || '·');
-      node.children[2].textContent=e.source==='server'?(e.eventType==='server_up'?t("Server responding"):t('serverDown',{error:e.message})):t(e.eventType==='join'?'playerJoin':'playerLeave',{name:e.player ?? e.name ?? e.message.replace(/ (joined|left)$/,'')});
+      node.children[1].textContent=({join:'↗',leave:'↘',death:'☠',server_up:'●',server_down:'!'}[e.eventType] || '·');
+      node.children[2].textContent=e.source==='server'?(e.eventType==='server_up'?t("Server responding"):t('serverDown',{error:e.message})):t(e.eventType==='join'?'playerJoin':e.eventType==='death'?'playerDeath':'playerLeave',{name:e.player ?? e.name ?? e.message.replace(/ (joined|left)$/,'')});
     });
     $('load-events').hidden=shown.length>=filtered.length;
     text('events-note',!filtered.length?t("No matching events."):filtered.length>=200?t("Showing the latest 200 fetched events."):t('eventCount',{shown:number(shown.length),total:number(filtered.length)}));

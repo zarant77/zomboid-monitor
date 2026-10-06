@@ -1129,3 +1129,6 @@ dialog::backdrop {
 .status-marker.refreshing .refresh-ring {animation:refresh-spin 1s linear infinite}
 @keyframes refresh-spin {to {transform:rotate(270deg)}}
 @media(prefers-reduced-motion:reduce){.status-marker.refreshing .refresh-ring{animation:none}}
+
+.event-death .event-symbol { color: var(--red); }
+.snapshot-bar.death { background: var(--red); }

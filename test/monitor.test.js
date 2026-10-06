@@ -22,7 +22,7 @@ test('player reset, leaves, rejoins, state transitions, counters and minute aggr
   assert.equal(r.players()[0].lastSessionSeconds,30); assert.equal(r.players(true).length,0);
   r.record(state(3), '2026-10-02T10:01:00.000Z');
   assert.equal(r.events(200).filter(e => e.source==='server').length,3);
-  assert.equal(r.events(200).filter(e => e.source==='player').length,3);
+  assert.equal(r.events(200).filter(e => e.source==='player').length,4);
   assert.equal(r.stats().availability,60); assert.equal(r.stats().downtimeSeconds,50);
   const samples = r.db.prepare('SELECT * FROM server_samples ORDER BY created_at').all();
   assert.equal(samples.length,2); assert.equal(samples[0].checks,4); assert.equal(samples[0].avg_ping,60);
@@ -78,7 +78,7 @@ test('tracked gain is net change from baseline, keeps maximum and session metric
   r.record(state(30,10),'2026-10-03T00:01:10.000Z');
   const detail=r.player(p.id);assert.equal(detail.joinCount,2);assert.equal(detail.longestSessionSeconds,60);
   assert.equal(detail.trackedKillGain,0);assert.equal(detail.joinedAt,'2026-10-03T00:01:10.000Z');
-  assert.equal(detail.events.length,3);
+  assert.equal(detail.events.length,4);
 });
 test('new migration preserves old records and backfills only known session data', t => {
   const fs=require('node:fs'),path=require('node:path');
@@ -92,7 +92,7 @@ test('new migration preserves old records and backfills only known session data'
   db.prepare('INSERT INTO player_events(player_id,event_type,created_at,kills,session_seconds) VALUES(1,?,?,?,?)').run('join','2026-10-01T00:00:00.000Z',3000,10);
   db.prepare('INSERT INTO player_events(player_id,event_type,created_at,kills,session_seconds) VALUES(1,?,?,?,?)').run('leave','2026-10-01T01:00:00.000Z',4000,3600);
   migrate(db);migrate(db);const p=new Repository(db,config).players()[0];
-  assert.equal(p.name,'Legacy');assert.equal(p.maxKills,4000);assert.equal(p.currentKills,3000);
+  assert.equal(p.deaths,0);assert.equal(p.name,'Legacy');assert.equal(p.maxKills,4000);assert.equal(p.currentKills,3000);
   assert.equal(p.longestSessionSeconds,3600);assert.equal(p.joinCount,1);assert.equal(p.trackedKillGain,0);
   assert.equal(db.prepare('SELECT COUNT(*) AS n FROM player_events').get().n,2);
 });
@@ -135,4 +135,22 @@ test('gain correction migration preserves history and resets only unreliable gai
   r.db.exec("UPDATE players SET tracked_kill_gain=9000,max_kills=3500; ALTER TABLE players DROP COLUMN kill_gain_baseline; DELETE FROM schema_migrations WHERE name='004_kill_gain_baseline.sql'");
   migrate(r.db);const p=r.players()[0];assert.equal(p.trackedKillGain,0);assert.equal(p.maxKills,3500);assert.equal(r.player(p.id).events.length,1);
   r.record(state(3010));migrate(r.db);assert.equal(r.players()[0].trackedKillGain,10);
+});
+
+ test('deaths count each decrease once, survive restarts and appear in events', t => {
+  let r=setup(t);
+  for (const [i,kills] of [1000,0,0,700,710,497].entries()) {
+    r.record(state(kills),new Date(Date.UTC(2026,9,6,0,0,i*5)).toISOString());
+  }
+  const p=r.players()[0];
+  assert.equal(p.deaths,2);
+  assert.equal(r.player(p.id).events.filter(e=>e.eventType==='death').length,2);
+  const deaths=r.events(200).filter(e=>e.eventType==='death');
+  assert.equal(deaths.length,2);assert.equal(deaths[0].player,'Ryder');
+  assert.equal(deaths[0].kills,497);assert.equal(deaths[0].message,'Ryder died');
+  r=new Repository(r.db,config);r.record(state(497));assert.equal(r.players()[0].deaths,2);
+  r.record({online:false,error:'timeout'});r.record(state(10));
+  assert.equal(r.players()[0].deaths,3);
+  assert.equal(r.db.prepare('PRAGMA integrity_check').get().integrity_check,'ok');
+  assert.deepEqual(r.db.prepare('PRAGMA foreign_key_check').all(),[]);
 });
