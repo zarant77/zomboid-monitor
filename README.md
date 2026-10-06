@@ -181,3 +181,9 @@ Keep the ID unchanged until the next wipe: ordinary restarts and redeployments w
 ## Player records
 
 The record holders panel includes all tracked players, with all tied holders shown. Most kills uses `maxKills`, longest session uses `longestSessionSeconds`, and most deaths uses `deaths`. Migration 007 starts `bestSessionKills` tracking at zero with the current score as baseline for existing players. Session kills are the largest observed positive net increase from the first observed score in a session; deaths and restores below an already observed score do not inflate the record. A rejoin or a decrease in reported session duration starts a new baseline. This is an observed net-gain estimate: kills before the first poll, losses after a death, or journal restores across session boundaries cannot be reconstructed reliably. Restarting the monitor preserves session baselines; server wipes clear these records with other player data.
+
+## Frontend cache versioning
+
+At startup, the server computes a SHA-256 version from all CSS, JavaScript, and locale JSON content. Served HTML references versioned filenames (for example `/styles.0123456789abcdef.css`); the i18n script also fetches versioned dictionaries. A change to any frontend file changes the version for the whole bundle on the next restart/deploy. Identical content keeps the same version. No separate build step is needed.
+
+Versioned assets are served with a one-year immutable cache; HTML uses `no-store` so normal reloads load the current asset URLs. Original unversioned routes remain available with `no-cache`. Deploy/restart after editing frontend files because assets are loaded into memory at startup.
