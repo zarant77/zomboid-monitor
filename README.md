@@ -20,7 +20,7 @@ npm run migrate   # safe to repeat
 npm test          # isolated SQLite tests; no live game server required
 ```
 
-Migrations run automatically before startup. `server.js` also checks them when started directly. `schema_migrations` records applied SQL files, and each migration runs in a transaction. Add a new migration file instead of editing an already applied migration.
+Migrations run automatically before startup. `server.js` also checks them when started directly. `schema_migrations` records applied SQL files, and each migration runs in a transaction. The complete initial schema is defined in `001_schema.sql` for a fresh database. Upgrades from the previous eight-migration schema are not supported. Add a new migration file for future schema changes.
 
 ## Environment variables
 
@@ -38,16 +38,22 @@ Each database belongs to one host/port combination. Use a separate database file
 
 ## Railway
 
-1. Connect the repository as a Node service. Railpack selects Node using `engines.node`; Docker is unnecessary. Start command: `npm start`.
+1. Connect the repository as a Node service. Railpack selects Node 24 using `engines.node`; Docker is unnecessary. `railway.json` sets `npm start`, `/health`, one replica, On Failure restarts, and disables sleeping.
 2. Create a **Volume**, attach it to this service, and set its mount path to **`/data`**.
-3. Set these variables:
+3. Set these variables (also available in `.env.railway.example`):
 
 ```dotenv
+NODE_ENV=production
 DATABASE_PATH=/data/zomboid.db
 GAME_HOST=2.28.54.80
 GAME_PORT=16261
 CHECK_INTERVAL=5000
+SERVER_TIMEZONE=+01:00
+RAILWAY_DEPLOYMENT_DRAINING_SECONDS=15
+SERVER_WIPE_ID=
 ```
+
+Leave `SERVER_WIPE_ID` empty on the first deployment. Set a new nonempty ID only when statistics should be cleared; unchanged IDs do not reset statistics again. This resets observations after schema initialization, so it does not upgrade or replace a database from the old migration layout. Use a fresh database/Volume for this deployment.
 
 4. Leave `PORT` unset: Railway supplies it automatically. Set the healthcheck path to **`/health`** and generate a public domain.
 5. Use one replica and disable Serverless/App Sleeping for continuous monitoring. Set the restart policy to On Failure. To allow the current query to finish during shutdown, set `RAILWAY_DEPLOYMENT_DRAINING_SECONDS=15`.
@@ -95,7 +101,7 @@ The dashboard uses vanilla HTML/CSS/JavaScript with a dark survival theme, a her
 
 The default statistics period is 24 hours; 7-day and 30-day views are also available. Period metrics use the real checks accumulated in minute samples. Tracked player count is always the all-time total and is labeled accordingly. History is grouped into 10-minute, 1-hour, or 4-hour buckets, returning at most approximately 145, 169, or 181 points. Averages are weighted by their source check counts. Missing periods are left empty; the chart does not invent observations. Time-window boundaries use available minute samples.
 
-Migration `003_player_tracking.sql` adds `tracked_kill_gain`, `longest_session_seconds`, `join_count`, and `gain_tracked_since` without deleting any player or event records. The longest known session and existing join count are backfilled from stored values and events. Historical kill gain cannot be reconstructed from maxima, so existing players start at zero gain when this migration is applied. New players also start at zero gain; their initial score is a baseline.
+Player tracking stores net kill gain, longest observed session, join count, and the tracking start time. Each new player starts with zero gain; their initial score is a baseline.
 
 `joinedAt` is the latest observed join timestamp for an online player, not an inferred login time. Observed sessions and join count both represent recorded joins; outages may split one actual session into multiple observed sessions. Longest session uses the highest duration actually reported by A2S. The player chart shows join/leave snapshots, not a continuous score history.
 
@@ -119,7 +125,7 @@ src/utils.js              response normalization
 src/http.js               HTTP routing
 src/web.js                static asset allowlist
 scripts/migrate.js        migration CLI
-migrations/*.sql          schema and indexes
+migrations/001_schema.sql consolidated schema and indexes
 public/                   HTML, CSS, browser JavaScript, hero and social assets
 public/js/                shared DOM utilities, SVG charts, player tables and dialog
 test/monitor.test.js      persistence and monitoring tests
@@ -139,12 +145,12 @@ curl http://localhost:3000/api/status
 curl http://localhost:3000/api/leaderboard
 ```
 
-The SQLite file and its parent directory are created automatically. WAL and foreign keys are enabled. Tests cover migrations, kill resets, join/leave events, offline persistence, database reopening, minute buckets, downtime, missing player lists, description ordering, and sequential monitoring after a query failure, tracked gain after resets, migration compatibility with existing data, weighted history downsampling, and names containing HTML characters.
+The SQLite file and its parent directory are created automatically. WAL and foreign keys are enabled. Tests cover migrations, kill resets, join/leave events, offline persistence, database reopening, minute buckets, downtime, missing player lists, description ordering, and sequential monitoring after a query failure, tracked gain after resets, weighted history downsampling, and names containing HTML characters.
 
 
 ## Deploying the redesigned dashboard
 
-Environment variables, the Railway Volume mount, and the start command are unchanged. Keep `DATABASE_PATH=/data/zomboid.db`, mount the same persistent Volume at `/data`, and deploy the new code. `npm start` applies migration 003 automatically. Back up the Volume before deployment. Do not remove the existing database or edit migrations 001/002. Tracking gain starts at migration time; existing leaderboard maxima and offline players are retained.
+For a fresh deployment, set `DATABASE_PATH=/data/zomboid.db`, mount a new persistent Volume at `/data`, and use `npm start`. The initial migration creates the complete schema automatically.
 
 Local verification:
 
@@ -167,9 +173,9 @@ The dashboard supports English and Ukrainian. UI strings live in `public/locales
 
 ## Kill restoration correction
 
-Migration 004 starts a fresh net-gain baseline at each existing player’s latest score and clears the unreliable accumulated positive-delta gain once. Player records, event history, sessions, and historical maxima are preserved. Gain is now `max(0, currentKills - baseline)`: decreases reduce it, and restoring lost kills does not count them again. The leaderboard displays and sorts by latest observed kills; the historical maximum remains in player details. A2S cannot distinguish journal restoration from actual kills when a decrease occurs entirely between polls. Deploy normally with `npm start` to apply the migration.
+Gain is `max(0, currentKills - baseline)`: decreases reduce it, and restoring lost kills does not count them again. The leaderboard displays and sorts by latest observed kills; the historical maximum remains in player details. A2S cannot distinguish journal restoration from actual kills when a decrease occurs entirely between polls.
 
-Migration 005 adds persistent player death counts and death events. Each observed decrease in kills counts as one death, including decreases first seen after a rejoin. Journal restores increase kills and do not add deaths. Counts begin when this migration is installed; historical deaths are not backfilled. Deaths with zero kills cannot be detected. The leaderboard, player details, and recent events show deaths.
+Player death counts and death events are persistent. Each observed decrease in kills counts as one death, including decreases first seen after a rejoin. Journal restores increase kills and do not add deaths. Deaths with zero kills cannot be detected. The leaderboard, player details, and recent events show deaths.
 
 ## Resetting statistics after a game server wipe
 
@@ -181,7 +187,7 @@ Keep the ID unchanged until the next wipe: ordinary restarts and redeployments w
 
 ## Player records
 
-The record holders panel includes all tracked players, with all tied holders shown. Most kills uses `maxKills`, longest session uses `longestSessionSeconds`, and most deaths uses `deaths`. Migration 007 starts `bestSessionKills` tracking at zero with the current score as baseline for existing players. Session kills are the largest observed positive net increase from the first observed score in a session; deaths and restores below an already observed score do not inflate the record. A rejoin or a decrease in reported session duration starts a new baseline. This is an observed net-gain estimate: kills before the first poll, losses after a death, or journal restores across session boundaries cannot be reconstructed reliably. Restarting the monitor preserves session baselines; server wipes clear these records with other player data.
+The record holders panel includes all tracked players, with all tied holders shown. Most kills uses `maxKills`, longest session uses `longestSessionSeconds`, and most deaths uses `deaths`. `bestSessionKills` tracking starts at zero with the first observed score as baseline. Session kills are the largest observed positive net increase from the first observed score in a session; deaths and restores below an already observed score do not inflate the record. A rejoin or a decrease in reported session duration starts a new baseline. This is an observed net-gain estimate: kills before the first poll, losses after a death, or journal restores across session boundaries cannot be reconstructed reliably. Restarting the monitor preserves session baselines; server wipes clear these records with other player data.
 
 ## Frontend cache versioning
 
@@ -193,6 +199,6 @@ Versioned assets are served with a one-year immutable cache; HTML uses `no-store
 
 The leaderboard and player dialog display `killGainToday`: `max(0, sum of observed signed kill changes from server-local midnight through now)`. Set `SERVER_TIMEZONE` in `.env` or Railway service variables and restart the monitor. The default `+01:00` preserves fixed GMT+1; use `Europe/Berlin` for Germany's seasonal clock changes. Other valid IANA timezones and fixed offsets are supported. Invalid timezone values fail startup. Day boundaries are independent of the monitor host timezone, including 23- and 25-hour DST days. At midnight the displayed value returns to zero, including for offline players. Existing changes remain intact when changing the timezone; the day window is recalculated. Player API responses include `serverTimezone`, used in the gain tooltip and player details.
 
-This is net score gain, not total kills across lives. Deaths subtract from the day; restoration within the same day offsets the loss. A journal restore after midnight can appear as gain if its death happened on the previous day; A2S cannot distinguish it from new kills. Initial observed kills are excluded. Migration 008 starts fresh tracking without inventing historical daily values. The previous `trackedKillGain` and rolling `killGain24h` fields remain available in the API for compatibility.
+This is net score gain, not total kills across lives. Deaths subtract from the day; restoration within the same day offsets the loss. A journal restore after midnight can appear as gain if its death happened on the previous day; A2S cannot distinguish it from new kills. Initial observed kills are excluded. Daily tracking starts from the first observation without inventing historical values. The previous `trackedKillGain` and rolling `killGain24h` fields remain available in the API for compatibility.
 
 Only score changes are stored, with a player/time primary key and a time index; changes older than 48 hours are pruned after each successful record transaction. Player queries calculate gain at request time. Restarts preserve changes, and `SERVER_WIPE_ID` resets them with all other observations.

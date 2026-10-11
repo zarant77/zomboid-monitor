@@ -80,22 +80,6 @@ test('tracked gain is net change from baseline, keeps maximum and session metric
   assert.equal(detail.trackedKillGain,0);assert.equal(detail.joinedAt,'2026-10-03T00:01:10.000Z');
   assert.equal(detail.events.length,4);
 });
-test('new migration preserves old records and backfills only known session data', t => {
-  const fs=require('node:fs'),path=require('node:path');
-  const db=new DatabaseSync(':memory:');t.after(()=>db.close());
-  db.exec('CREATE TABLE schema_migrations(name TEXT PRIMARY KEY,applied_at TEXT NOT NULL)');
-  for(const name of ['001_initial.sql','002_indexes.sql']){
-    db.exec(fs.readFileSync(path.join(__dirname,'../migrations',name),'utf8'));
-    db.prepare('INSERT INTO schema_migrations VALUES(?,?)').run(name,'2026-10-01T00:00:00.000Z');
-  }
-  db.prepare('INSERT INTO players(name,first_seen,last_seen,current_kills,max_kills,current_session_seconds,last_session_seconds) VALUES(?,?,?,?,?,?,?)').run('Legacy', '2026-10-01T00:00:00.000Z','2026-10-01T01:00:00.000Z',3000,4000,100,200);
-  db.prepare('INSERT INTO player_events(player_id,event_type,created_at,kills,session_seconds) VALUES(1,?,?,?,?)').run('join','2026-10-01T00:00:00.000Z',3000,10);
-  db.prepare('INSERT INTO player_events(player_id,event_type,created_at,kills,session_seconds) VALUES(1,?,?,?,?)').run('leave','2026-10-01T01:00:00.000Z',4000,3600);
-  migrate(db);migrate(db);const p=new Repository(db,config).players()[0];
-  assert.equal(p.deaths,0);assert.equal(p.name,'Legacy');assert.equal(p.maxKills,4000);assert.equal(p.currentKills,3000);
-  assert.equal(p.longestSessionSeconds,3600);assert.equal(p.joinCount,1);assert.equal(p.trackedKillGain,0);
-  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM player_events').get().n,2);
-});
 test('history downsampling is bounded and weighted, zero players and failures are distinct', t => {
   const r=setup(t),now=Date.parse('2026-10-03T01:00:00.000Z');
   assert.deepEqual(r.history('24h',now).samples,[]);
@@ -130,13 +114,6 @@ test('death and journal restoration use latest kills and do not inflate net gain
   const restarted=new Repository(r.db,config);restarted.record(state(3100));
   assert.equal(restarted.players().find(p=>p.name==='Ryder').trackedKillGain,0);
 });
-test('gain correction migration preserves history and resets only unreliable gain once',t=>{
-  const r=setup(t);r.record(state(3000));
-  r.db.exec("UPDATE players SET tracked_kill_gain=9000,max_kills=3500; ALTER TABLE players DROP COLUMN kill_gain_baseline; DELETE FROM schema_migrations WHERE name='004_kill_gain_baseline.sql'");
-  migrate(r.db);const p=r.players()[0];assert.equal(p.trackedKillGain,0);assert.equal(p.maxKills,3500);assert.equal(r.player(p.id).events.length,1);
-  r.record(state(3010));migrate(r.db);assert.equal(r.players()[0].trackedKillGain,10);
-});
-
  test('deaths count each decrease once, survive restarts and appear in events', t => {
   let r=setup(t);
   for (const [i,kills] of [1000,0,0,700,710,497].entries()) {

@@ -7,12 +7,20 @@ CREATE TABLE players (
   max_kills REAL NOT NULL DEFAULT 0,
   online INTEGER NOT NULL DEFAULT 0 CHECK (online IN (0,1)),
   current_session_seconds REAL NOT NULL DEFAULT 0,
-  last_session_seconds REAL NOT NULL DEFAULT 0
+  last_session_seconds REAL NOT NULL DEFAULT 0,
+  tracked_kill_gain REAL NOT NULL DEFAULT 0,
+  longest_session_seconds REAL NOT NULL DEFAULT 0,
+  join_count INTEGER NOT NULL DEFAULT 0,
+  gain_tracked_since TEXT,
+  kill_gain_baseline REAL NOT NULL DEFAULT 0,
+  death_count INTEGER NOT NULL DEFAULT 0,
+  session_kill_baseline REAL NOT NULL DEFAULT 0,
+  best_session_kills REAL NOT NULL DEFAULT 0
 );
 CREATE TABLE player_events (
   id INTEGER PRIMARY KEY,
   player_id INTEGER NOT NULL REFERENCES players(id),
-  event_type TEXT NOT NULL CHECK (event_type IN ('join','leave')),
+  event_type TEXT NOT NULL CHECK (event_type IN ('join','leave','death')),
   created_at TEXT NOT NULL,
   kills REAL NOT NULL,
   session_seconds REAL NOT NULL
@@ -57,3 +65,22 @@ CREATE TABLE server_samples (
   players_sum REAL NOT NULL,
   successful_checks INTEGER NOT NULL
 );
+
+CREATE TABLE monitor_metadata (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);
+
+CREATE TABLE player_kill_changes (
+  player_id INTEGER NOT NULL REFERENCES players(id),
+  created_at TEXT NOT NULL,
+  delta REAL NOT NULL,
+  PRIMARY KEY (player_id, created_at)
+);
+
+CREATE INDEX players_leaderboard ON players(max_kills DESC, name);
+CREATE INDEX players_online ON players(online);
+CREATE INDEX player_events_recent ON player_events(created_at DESC);
+CREATE INDEX server_events_recent ON server_events(created_at DESC);
+CREATE INDEX player_events_player_recent ON player_events(player_id, created_at DESC, id DESC);
+CREATE INDEX player_kill_changes_recent ON player_kill_changes(created_at);
