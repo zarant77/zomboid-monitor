@@ -1,3 +1,4 @@
+const vanillaBookIds = new Set(require('../public/js/books').skills.flatMap(skill => skill.volumes.map(book => book.itemKey)));
 const { randomBytes } = require('node:crypto');
 class HttpError extends Error { constructor(status, message) { super(message); this.status = status; } }
 const fail = (status, message) => { throw new HttpError(status, message); };
@@ -66,7 +67,7 @@ function createFactions(db, auth, { publicOrigin }, profiles = null) {
           return { id: row.faction_id, name: row.name };
         }); json(res, 200, { faction: result }); return true;
       }
-      const match = route.match(/^\/api\/factions\/(\d+)(?:\/(members|invites|items|leader)(?:\/([^/]+))?)?$/);
+      const match = route.match(/^\/api\/factions\/(\d+)(?:\/(members|invites|items|leader|custom-books)(?:\/([^/]+))?)?$/);
       if (!match) fail(404, 'Not found');
       const id = integer(Number(match[1]), 1, Number.MAX_SAFE_INTEGER), section = match[2], key = match[3];
       membership(id, user.id);
@@ -116,6 +117,48 @@ function createFactions(db, auth, { publicOrigin }, profiles = null) {
             db.prepare(`INSERT INTO faction_join_links(faction_id,token,enabled) VALUES (?,?,?)
               ON CONFLICT(faction_id) DO UPDATE SET enabled=excluded.enabled`).run(id, randomBytes(32).toString('hex'), Number(body.enabled));
           }); json(res, 200, response()); return true;
+        }
+      }
+      if (section === 'custom-books') {
+        if (!key && req.method === 'GET') {
+          const series = db.prepare('SELECT id,name,localized_name AS localizedName,mod_name AS modName FROM faction_book_series WHERE faction_id=? ORDER BY name,id').all(id);
+          for (const row of series) row.volumes = db.prepare('SELECT volume,item_key AS itemKey FROM faction_book_volumes WHERE faction_id=? AND series_id=? ORDER BY volume').all(id,row.id);
+          json(res, 200, { series }); return true;
+        }
+        if (!key && req.method === 'POST') {
+          const body = await readBody(req), name = text(body.name,160,'book name');
+          const localizedName = null;
+          const modName = null;
+          if (body.volumes === undefined) {
+            const key = randomBytes(16).toString('hex');
+            body.volumes = [1,2,3,4,5].map(volume => ({ volume, itemKey:`CustomBook.${key}_${volume}` }));
+          }
+          if (!Array.isArray(body.volumes) || body.volumes.length < 1 || body.volumes.length > 5) fail(400,'Add at least one volume');
+          const volumes = body.volumes.map(book => {
+            if (!book || typeof book !== 'object') fail(400,'Invalid volume');
+            const volume = integer(book.volume,1,5), itemKey = text(book.itemKey,160,'item key');
+            if (!/^\S+\.\S+$/.test(itemKey)) fail(400,'Use a full game item ID');
+            if (vanillaBookIds.has(itemKey)) fail(409,'This book already exists');
+            return { volume,itemKey };
+          });
+          if (new Set(volumes.map(v=>v.volume)).size !== volumes.length || new Set(volumes.map(v=>v.itemKey)).size !== volumes.length) fail(400,'Duplicate volume or item ID');
+          const series = transaction(() => {
+            membership(id,user.id);
+            if (db.prepare('SELECT 1 FROM faction_book_series WHERE faction_id=? AND name=?').get(id,name) ||
+              volumes.some(v=>db.prepare('SELECT 1 FROM faction_book_volumes WHERE faction_id=? AND item_key=?').get(id,v.itemKey))) fail(409,'This book already exists');
+            const row = db.prepare('INSERT INTO faction_book_series(faction_id,name,localized_name,mod_name,created_by,created_at) VALUES (?,?,?,?,?,?) RETURNING id').get(id,name,localizedName,modName,user.id,new Date().toISOString());
+            for (const book of volumes) db.prepare('INSERT INTO faction_book_volumes VALUES (?,?,?,?)').run(row.id,id,book.volume,book.itemKey);
+            return { id:row.id };
+          }); json(res,201,{ series }); return true;
+        }
+        if (key && req.method === 'DELETE') {
+          const seriesId = integer(Number(key),1,Number.MAX_SAFE_INTEGER);
+          transaction(() => {
+            membership(id,user.id);
+            if (!db.prepare('SELECT 1 FROM faction_book_series WHERE id=? AND faction_id=?').get(seriesId,id)) fail(404,'Book not found');
+            // Removing a custom row leaves its recorded inventory intact.
+            db.prepare('DELETE FROM faction_book_series WHERE id=? AND faction_id=?').run(seriesId,id);
+          }); json(res,200,{ ok:true }); return true;
         }
       }
       if (section === 'items') {

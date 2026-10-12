@@ -44,6 +44,7 @@
 <symbol id="i-trophy" viewBox="0 0 24 24"><path d="M7 3h10v7a5 5 0 0 1-10 0zM7 5H3v3a4 4 0 0 0 4 4M17 5h4v3a4 4 0 0 1-4 4M12 15v6M8 21h8"/></symbol>
 <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7h.01"/></symbol>
 <symbol id="i-swords" viewBox="0 0 24 24"><path d="m3 3 12 12M3 3l1 5 4-4zM21 3 9 15M21 3l-1 5-4-4zM12 18l6-6M6 12l6 6M15 15l6 6M9 15l-6 6"/></symbol>
+<symbol id="i-printer" viewBox="0 0 24 24"><path d="M6 9V3h12v6M6 17H4a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2M6 14h12v7H6zM18 12h.01"/></symbol>
 <symbol id="i-file" viewBox="0 0 24 24"><path d="M5 2h9l5 5v15H5zM14 2v6h5M8 12h8M8 16h8"/></symbol>
 <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M4 12h16M14 6l6 6-6 6"/></symbol>
 <symbol id="i-person" viewBox="0 0 24 24"><circle cx="12" cy="3" r="2"/><path d="m7 10 5-4 5 4M12 6v8M12 14l-5 8M12 14l5 8"/></symbol>
@@ -53,21 +54,22 @@
 <p id="account-message" class="auth-error" role="status" hidden></p>
 <header class="hero" data-hero="">
 <div class="header-actions">
+<nav id="main-menu" class="main-menu" hidden aria-label="" data-i18n-aria-label="Main menu">
+<div class="menu-pages"><a id="menu-monitor" href="#monitoring" aria-current="page"><span data-i18n="Monitoring"></span></a><a id="menu-factions" href="#factions"><span data-i18n="Faction"></span></a><a id="menu-books" href="#books" hidden><span data-i18n="Books"></span></a></div>
+</nav>
 <div class="menu-account"><span id="account-profile" hidden></span><a id="steam-login" href="/auth/steam" hidden><span data-i18n="Sign in through Steam"></span></a><button id="steam-logout" type="button" hidden><span data-i18n="Sign out"></span></button></div>
 <div id="language-switcher" class="language-switcher" role="group" data-i18n-aria-label="Choose language">
 <button type="button" data-language="en" data-i18n-aria-label="Switch to English" data-i18n-title="Switch to English" aria-pressed="true"><svg viewBox="0 0 28 20" aria-hidden="true"><rect width="28" height="20" rx="3" fill="#173452"/><path d="m2 2 24 16M26 2 2 18" stroke="#f1f4f6" stroke-width="4"/><path d="m2 2 24 16M26 2 2 18" stroke="#cf5265" stroke-width="1.5"/><path d="M14 0v20M0 10h28" stroke="#f1f4f6" stroke-width="7"/><path d="M14 0v20M0 10h28" stroke="#cf5265" stroke-width="4"/></svg><span>EN</span></button>
 <button type="button" data-language="uk" data-i18n-aria-label="Switch to Ukrainian" data-i18n-title="Switch to Ukrainian" aria-pressed="false"><svg viewBox="0 0 28 20" aria-hidden="true"><rect width="28" height="20" rx="3" fill="#f4cf49"/><path d="M3 0h22a3 3 0 0 1 3 3v7H0V3a3 3 0 0 1 3-3" fill="#4289d5"/></svg><span>UK</span></button>
 </div>
 </div>
-<div class="brand"><svg class="icon brand-icon"><use href="#i-person"/></svg><span><span data-i18n="PROJECT ZOMBOID"></span><br><span class="muted"><span data-i18n="SERVER MONITOR"></span></span></span></div>
-<h1><span data-i18n="28 Kills Later"></span></h1>
-<p id="hero-subtitle" class="hero-subtitle">—</p>
+<h1 id="hero-title">28 Days Later</h1>
+<div class="hero-summary"><p id="hero-subtitle" class="hero-subtitle"></p>
 <div class="hero-live"><strong id="status" class="live-status waiting"><span class="status-marker" aria-hidden="true"><span class="status-dot"></span><svg class="refresh-ring" viewBox="0 0 32 32"><circle class="refresh-track" cx="16" cy="16" r="14"/><circle id="refresh-progress" cx="16" cy="16" r="14" pathLength="100"/></svg></span><span id="status-label"><span data-i18n="WAITING"></span></span></strong></div>
+</div>
 <p id="connection-message" class="connection-message" role="status"></p>
 </header>
-<nav id="main-menu" class="main-menu" hidden aria-label="" data-i18n-aria-label="Main menu">
-<div class="menu-pages"><a id="menu-monitor" href="#monitoring" aria-current="page"><span data-i18n="Monitoring"></span></a><a id="menu-factions" href="#factions"><span data-i18n="Faction"></span></a><a id="menu-books" href="#books" hidden><span data-i18n="Books"></span></a></div>
-</nav>
+
 <div id="monitoring-view">
 <main>
 
@@ -76,7 +78,8 @@
 <div id="server-metrics" class="server-metrics"></div><p id="server-error" class="error" role="status"></p>
 </section>
 <div class="primary-grid">
-<section class="panel" aria-labelledby="players-heading"><div class="panel-heading"><h2 id="players-heading"><span class="dot green"></span><span data-i18n="Online Players"></span><span id="online-count">(0)</span></h2><a href="#leaderboard-section" class="text-link"><span data-i18n="View all"></span><span aria-hidden="true">→</span></a></div><div class="table-wrap"><table class="online-table"><thead><tr><th>#</th><th><span data-i18n="Player"></span></th><th><span data-i18n="Kills"></span></th><th><span data-i18n="Session"></span></th><th><span data-i18n="Joined"></span></th></tr></thead><tbody id="players"></tbody></table></div><p id="players-note" class="note"></p></section>
+<section class="panel" aria-labelledby="players-heading"><div class="panel-heading"><h2 id="players-heading"><span class="dot green"></span><span data-i18n="Online Players"></span><span id="online-count">(0)</span></h2><a href="#leaderboard-section" class="text-link"><span data-i18n="View all"></span><span aria-hidden="true">→</span></a></div><div class="table-wrap"><table class="online-table"><thead><tr><th>#</th><th><span data-i18n="Player"></span></th><th><span data-i18n="Kills"></span></th><th><span data-i18n="Session"></span></th><th><span data-i18n="Joined"></span></th></tr></thead><tbody id="players"></tbody></table></div>
+<p id="players-note" class="note"></p></section>
 <section class="panel statistics" aria-labelledby="stats-heading"><div class="panel-heading"><h2 id="stats-heading"><svg class="icon blue"><use href="#i-chart"/></svg><span data-i18n="Server Statistics"></span></h2><div class="segmented" id="period-filter" role="group" aria-label="" data-i18n-aria-label="Statistics period"><button data-period="24h" aria-pressed="true"><span data-i18n="24h"></span></button><button data-period="7d" aria-pressed="false"><span data-i18n="7d"></span></button><button data-period="30d" aria-pressed="false"><span data-i18n="30d"></span></button></div></div><div id="stats-metrics" class="stats-metrics"></div><div class="chart-heading"><span id="chart-title"><span data-i18n="chartTitle" data-i18n-default-period="period24h"></span></span><span class="legend"><span><i class="dot green"></i><span data-i18n="Players"></span></span><span><i class="dot blue-bg"></i><span data-i18n="Ping (ms)"></span></span></span></div><div class="chart-wrap" id="history-chart"><svg id="chart" viewBox="0 0 520 160" role="img" aria-label="" data-i18n-aria-label="Historical player count and ping"></svg><div id="chart-tooltip" class="chart-tooltip" hidden></div><p id="chart-empty" class="chart-empty"><span data-i18n="No samples in this period yet."></span></p></div><p id="stats-note" class="note"><span data-i18n="Period statistics · tracked players across all history"></span></p></section>
 </div>
 <section class="panel" aria-labelledby="records-heading"><div class="panel-heading"><h2 id="records-heading"><svg class="icon amber"><use href="#i-trophy"/></svg><span data-i18n="Record holders"></span></h2></div><div id="player-records" class="records-grid"></div><p class="note"><span data-i18n="recordsNote"></span></p></section>
@@ -91,7 +94,7 @@
 </main>
 </div>
 <section id="books-view" class="panel books-page" aria-labelledby="books-heading" hidden>
-<div class="faction-page-heading"><div><div class="eyebrow"><span data-i18n="YOUR TEAM"></span></div><h1 id="books-heading"><span data-i18n="Faction"></span></h1></div><button id="print-books" type="button" hidden><span data-i18n="Print"></span></button></div>
+<div class="faction-page-heading"><div><div class="eyebrow"><span data-i18n="YOUR TEAM"></span></div><h1 id="books-heading"><span data-i18n="Faction"></span></h1></div><button id="print-books" class="icon-button" type="button" hidden data-i18n-aria-label="Print" data-i18n-title="Print"><svg class="icon" aria-hidden="true"><use href="#i-printer"/></svg></button></div>
 <p id="faction-error" class="auth-error" role="alert" hidden></p>
 <p id="faction-success" role="status" hidden></p>
 <div id="invite-preview" class="faction-card invitation-card" hidden><div class="eyebrow"><span data-i18n="Invitation"></span></div><h2 id="invite-name"></h2><p id="invite-consequence"></p><div class="faction-actions"><button id="accept-invite" class="primary-action" type="button"><span data-i18n="Join faction"></span></button><button id="dismiss-invite" type="button"><span data-i18n="Dismiss invitation"></span></button></div></div>
@@ -107,8 +110,10 @@
 
 </div>
 <div id="collection-content">
-<div class="books-table-heading"><span class="eyebrow"><span data-i18n="Vanilla skill books"></span></span><span id="books-progress" class="mono" aria-live="polite">0 / 120</span></div>
+
+<div class="books-table-heading"><span class="eyebrow"><span data-i18n="Skill books"></span></span><span id="books-progress" class="mono" aria-live="polite">0 / 120</span></div>
 <div class="table-wrap books-table-wrap"><table class="books-table" aria-label="" data-i18n-aria-label="Faction skill book collection"><thead><tr><th scope="col"><span data-i18n="Name"></span></th><th scope="col"><span data-i18n="Volume 1"></span></th><th scope="col"><span data-i18n="Volume 2"></span></th><th scope="col"><span data-i18n="Volume 3"></span></th><th scope="col"><span data-i18n="Volume 4"></span></th><th scope="col"><span data-i18n="Volume 5"></span></th></tr></thead><tbody id="books-table-body"></tbody></table></div>
+<div class="custom-book-add"><button id="show-custom-book" class="icon-button" type="button" data-i18n-aria-label="Add custom books" data-i18n-title="Add custom books" aria-expanded="false" aria-controls="add-custom-book">+</button><span class="custom-book-hint" data-i18n="Add a mod book"></span><form id="add-custom-book" hidden><input id="custom-book-name" name="name" maxlength="160" required data-i18n-aria-label="Book name" placeholder="Archery"><button class="primary-action" type="submit" data-i18n-aria-label="Add to faction" data-i18n-title="Add to faction">✓</button></form></div>
 </div>
 </div>
 <div id="create-faction-card" class="faction-card"><h2><span data-i18n="Create faction"></span></h2><p id="create-consequence" class="note"></p><form id="create-faction"><label><span data-i18n="Faction name"></span><input name="name" maxlength="80" required></label><button class="primary-action"><span data-i18n="Create faction"></span></button></form></div>

@@ -1,7 +1,7 @@
 (() => {
   const $ = id => document.getElementById(id);
   let busy = false, notice = null;
-  let factions = [], active = null, members = [], joinLink = { enabled: false, url: null }, items = [], pending = null, errorKey = null, generation = 0;
+  let factions = [], active = null, members = [], joinLink = { enabled: false, url: null }, items = [], customSeries = [], pending = null, errorKey = null, generation = 0;
   try { pending = sessionStorage.getItem('zm.invite'); } catch {}
   function captureInvite() {
     const match = location.hash.match(/^#invite=([a-f0-9]{64})$/);
@@ -57,7 +57,7 @@
       li.append(ZM.userBadge(member), role);
       if (active?.role === 'owner' && member.role !== 'owner') li.append(button('Remove member', async () => { if (!await confirmAction('Remove member', 'This member will lose access to the shared collection.')) return; await api(`/api/factions/${active.id}/members/${member.id}`, 'DELETE'); await details(); }));
     });
-    ZM.renderBookCollection(active?.id, items, busy, changeBook);
+    ZM.renderBookCollection(active?.id, items, busy, changeBook, customSeries, removeCustomBook);
   }
   function changeBook(book, checked) {
     if (busy || !active) { render(); return; }
@@ -77,13 +77,13 @@
   $('new-leader').addEventListener('change', renderLeaderProfile);
   async function details() {
     const id = active?.id, version = ++generation;
-    if (!id) { members = []; joinLink = { enabled: false, url: null }; items = []; render(); return; }
-    const [m, i, v] = await Promise.all([api(`/api/factions/${id}/members`), api(`/api/factions/${id}/items`), active.role === 'owner' ? api(`/api/factions/${id}/invites`) : Promise.resolve({ invite: { enabled: false, url: null } })]);
+    if (!id) { members = []; joinLink = { enabled: false, url: null }; items = []; customSeries = []; render(); return; }
+    const [m, i, v, c] = await Promise.all([api(`/api/factions/${id}/members`), api(`/api/factions/${id}/items`), active.role === 'owner' ? api(`/api/factions/${id}/invites`) : Promise.resolve({ invite: { enabled: false, url: null } }), api(`/api/factions/${id}/custom-books`)]);
     if (version !== generation || !ZM.user) return;
-    members = m.members; items = i.items; joinLink = v.invite; render();
+    members = m.members; items = i.items; customSeries = c.series; joinLink = v.invite; render();
   }
   async function refresh(preferred) {
-    if (!ZM.user) { generation++; factions = []; active = null; members = []; joinLink = { enabled: false, url: null }; items = []; $('invite-preview').hidden = true; $('invite-result').hidden = true; $('invite-url').value = ''; render(); return; }
+    if (!ZM.user) { generation++; factions = []; active = null; members = []; joinLink = { enabled: false, url: null }; items = []; customSeries = []; $('invite-preview').hidden = true; $('invite-result').hidden = true; $('invite-url').value = ''; render(); return; }
     const userId = ZM.user.id, version = ++generation;
     const data = await api('/api/factions');
     if (ZM.user?.id !== userId || version !== generation) return;
@@ -91,7 +91,7 @@
     $('invite-result').hidden = true; $('invite-url').value = '';
     const previousFactionId = active?.id;
     active = factions[0] || null;
-    if (active?.id !== previousFactionId) items = [];
+    if (active?.id !== previousFactionId) { items = []; customSeries = []; }
     await details();
     if (pending) {
       let preview;
@@ -119,9 +119,9 @@
     if (busy) return;
     busy = true; errorKey = null; notice = null;
     document.querySelectorAll('.books-page button').forEach(node => { node.disabled = true; });
-    ZM.renderBookCollection(active?.id, items, true, changeBook);
+    ZM.renderBookCollection(active?.id, items, true, changeBook, customSeries, removeCustomBook);
     try { await action(); }
-    catch (error) { errorKey = ['Invitation unavailable','Owner required','Faction not found','Invalid name','Choose another member'].includes(error.message) ? error.message : 'Faction operation failed. Refresh and try again.'; }
+    catch (error) { errorKey = ['Invitation unavailable','Owner required','Faction not found','Invalid name','Choose another member','This book already exists','Add at least one volume','Use a full game item ID','Duplicate volume or item ID'].includes(error.message) ? error.message : 'Faction operation failed. Refresh and try again.'; }
     finally { busy = false; document.querySelectorAll('.books-page button').forEach(node => { node.disabled = false; }); render(); }
   }
   function form(id, action) {
@@ -137,6 +137,21 @@
     const result = await api(`/api/factions/${active.id}/invites`, 'POST', { enabled: !joinLink.enabled });
     joinLink = result.invite;
   }));
+  $('show-custom-book').addEventListener('click', () => {
+    $('add-custom-book').hidden = !$('add-custom-book').hidden;
+    $('show-custom-book').setAttribute('aria-expanded',String(!$('add-custom-book').hidden));
+    if (!$('add-custom-book').hidden) $('custom-book-name').focus();
+  });
+  form('add-custom-book', async (data,node) => {
+    await api(`/api/factions/${active.id}/custom-books`, 'POST', { name:data.name });
+    node.reset(); node.hidden = true; $('show-custom-book').setAttribute('aria-expanded','false'); await details(); notice = 'Custom book added.';
+  });
+  function removeCustomBook(skill) {
+    run(async () => {
+      if (!await confirmAction('Remove custom row', 'The custom row will be removed. Recorded inventory is kept.')) return;
+      await api(`/api/factions/${active.id}/custom-books/${skill.id}`, 'DELETE'); await details();
+    });
+  }
   $('dismiss-invite').addEventListener('click', () => {
     pending = null; try { sessionStorage.removeItem('zm.invite'); } catch {}
     $('invite-preview').hidden = true; errorKey = null; location.hash = '#factions'; render();

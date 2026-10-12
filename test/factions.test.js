@@ -150,3 +150,38 @@ test('one persistent invitation link has no expiry or use limit and toggles with
   assert.equal((await r(2, path)).status, 404);
   assert.equal((await r(2, `/api/factions/${faction.id}/invites`, 'POST', { enabled: true })).invite.url, enabled.url);
 });
+test('custom book catalogs belong to factions, support partial sets and reject duplicate vanilla or mod IDs', async t => {
+  const { request:r,db }=setup(t);
+  const a=(await r(1,'/api/factions','POST',{name:'A'})).faction;
+  const b=(await r(3,'/api/factions','POST',{name:'B'})).faction;
+  const payload={name:'Archery',localizedName:'Стрільба з лука',modName:'Example',volumes:[{volume:1,itemKey:'Example.Archery1'},{volume:3,itemKey:'Example.Archery3'}]};
+  assert.equal((await r(2,`/api/factions/${a.id}/custom-books`,'POST',payload)).status,404);
+  const link=(await r(1,`/api/factions/${a.id}/invites`,'POST',{enabled:true})).invite.url;
+  await r(2,'/api/faction-invites/'+link.split('=')[1]+'/accept','POST');
+  assert.equal((await r(2,`/api/factions/${a.id}/custom-books`,'POST',payload)).status,201);
+  const series=(await r(1,`/api/factions/${a.id}/custom-books`)).series[0];
+  assert.equal(series.localizedName,null); assert.deepEqual(series.volumes.map(book=>({...book})),payload.volumes);
+  assert.equal((await r(3,`/api/factions/${b.id}/custom-books`)).series.length,0);
+  assert.equal((await r(1,`/api/factions/${a.id}/custom-books`,'POST',payload)).status,409);
+  assert.equal((await r(1,`/api/factions/${a.id}/custom-books`,'POST',{...payload,name:'Other'})).status,409);
+  assert.equal((await r(1,`/api/factions/${a.id}/custom-books`,'POST',{...payload,volumes:[{volume:1,itemKey:'Base.BookCarpentry1'}]})).status,409);
+  assert.equal((await r(1,`/api/factions/${a.id}/custom-books`,'POST',{...payload,volumes:[]})).status,400);
+  assert.equal((await r(1,`/api/factions/${a.id}/custom-books`,'POST',{...payload,volumes:[{volume:1,itemKey:'MissingModule'}]})).status,400);
+  assert.equal((await r(3,`/api/factions/${b.id}/custom-books`,'POST',payload)).status,201);
+  await r(2,`/api/factions/${a.id}/items/Example.Archery1`,'PUT',{name:'Archery I',category:'book',quantity:1});
+  assert.equal((await r(3,`/api/factions/${a.id}/custom-books/${series.id}`,'DELETE')).status,404);
+  assert.equal((await r(2,`/api/factions/${a.id}/custom-books/${series.id}`,'DELETE')).status,200);
+  assert.equal((await r(1,`/api/factions/${a.id}/items`)).items[0].quantity,1);
+  assert.equal(db.prepare('SELECT count(*) AS n FROM faction_book_volumes WHERE faction_id=?').get(a.id).n,0);
+  await r(3,`/api/factions/${b.id}`,'DELETE');
+  assert.equal(db.prepare('SELECT count(*) AS n FROM faction_book_series').get().n,0);
+});
+test('name-only custom books generate five unique volumes shared with the faction', async t=>{
+  const {request:r}=setup(t);
+  const faction=(await r(1,'/api/factions','POST',{name:'Team'})).faction;
+  assert.equal((await r(1,`/api/factions/${faction.id}/custom-books`,'POST',{name:'Archery'})).status,201);
+  const row=(await r(1,`/api/factions/${faction.id}/custom-books`)).series[0];
+  assert.deepEqual(row.volumes.map(v=>v.volume),[1,2,3,4,5]);
+  assert.equal(new Set(row.volumes.map(v=>v.itemKey)).size,5);
+  assert.equal(row.localizedName,null); assert.equal(row.modName,null);
+});
