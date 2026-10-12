@@ -24,7 +24,7 @@ function urls(html){return [...String(html).matchAll(/(?:src|href)="([^"]+\.(?:c
 test('HTML uses versioned CSS and JS and i18n loads matching versioned dictionaries',()=>{
   const serve=loadWeb();const page=request(serve,'/');
   assert.equal(page.headers['Cache-Control'],'no-store');
-  const references=urls(page.body);assert.equal(references.length,6);
+  const references=urls(page.body);assert.equal(references.length,9);
   for(const url of references){
     assert.match(url,/\.[a-f0-9]{16}\.(css|js)$/);
     const asset=request(serve,url);assert.equal(asset.status,200);

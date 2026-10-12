@@ -32,6 +32,7 @@ Migrations run automatically before startup. `server.js` also checks them when s
 | `CHECK_INTERVAL` | `5000` | Delay in ms after a completed query |
 | `SERVER_TIMEZONE` | `+01:00` | Server calendar timezone; fixed offset or IANA name such as `Europe/Berlin` |
 | `SERVER_WIPE_ID` | unset | New unique value triggers a one-time statistics reset at startup |
+| `PUBLIC_ORIGIN` | `http://localhost:3000` in development | Exact web origin for Steam login; required HTTPS origin in production |
 | `DATABASE_PATH` | `./data/zomboid.db` | SQLite path, relative to working directory or absolute |
 
 Each database belongs to one host/port combination. Use a separate database file when monitoring another server to avoid mixing histories.
@@ -44,6 +45,7 @@ Each database belongs to one host/port combination. Use a separate database file
 
 ```dotenv
 NODE_ENV=production
+PUBLIC_ORIGIN=https://zomboid.catemup.com
 DATABASE_PATH=/data/zomboid.db
 GAME_HOST=2.28.54.80
 GAME_PORT=16261
@@ -64,7 +66,7 @@ Documentation: [Railway Volumes](https://docs.railway.com/volumes), [Healthcheck
 
 ## API
 
-All JSON endpoints use GET and return `Cache-Control: no-store`.
+Monitor JSON endpoints use GET and return `Cache-Control: no-store`. Account and authentication endpoints are documented below.
 
 | Endpoint | Response |
 | --- | --- |
@@ -202,3 +204,70 @@ The leaderboard and player dialog display `killGainToday`: `max(0, sum of observ
 This is net score gain, not total kills across lives. Deaths subtract from the day; restoration within the same day offsets the loss. A journal restore after midnight can appear as gain if its death happened on the previous day; A2S cannot distinguish it from new kills. Initial observed kills are excluded. Daily tracking starts from the first observation without inventing historical values. The previous `trackedKillGain` and rolling `killGain24h` fields remain available in the API for compatibility.
 
 Only score changes are stored, with a player/time primary key and a time index; changes older than 48 hours are pruned after each successful record transaction. Player queries calculate gain at request time. Restarts preserve changes, and `SERVER_WIPE_ID` resets them with all other observations.
+
+## Steam accounts
+
+Set `PUBLIC_ORIGIN` to the exact browser origin, for example `https://zomboid.catemup.com` on Railway. Production requires this variable and HTTPS; development defaults to `http://localhost:3000`. A custom local port must match the browser URL. Do not include paths, query parameters or fragments. The configured origin is used directly for callbacks and logout checks; proxy headers and request Host are not trusted.
+
+The header places Steam login/logout beside the language switcher. The main menu appears below the header only for signed-in users, with Monitoring as the default page. The Factions and Books pages are visible only to signed-in users. Books contains the user’s faction’s shared collection. Informational account prompts are omitted; authentication errors remain visible. Steam OpenID verifies the SteamID directly with Steam; no Steam API key or stored Steam password is needed. See [Steam browser authentication](https://partner.steamgames.com/doc/features/auth#website). Users are identified by SteamID; Steam display names and avatars are fetched when `STEAM_API_KEY` is configured.
+
+- `GET /auth/steam`: start login; redirects to Steam.
+- `GET /auth/steam/callback`: verify Steam assertion and create/update the user.
+- `GET /api/me`: `{ user: null }` for guests or the current user (`id`, `steamId`, `profileUrl`, `displayName`, `avatarUrl`, `createdAt`, `lastLoginAt`).
+- `GET /api/account`: the same user response, or 401 for guests; foundation for personal data.
+- `POST /auth/logout`: revoke the current session; requires an Origin matching `PUBLIC_ORIGIN`.
+
+Migration `002_users.sql` adds separate users, sessions, temporary login attempts and assertion nonces. Users are independent of name-based A2S player records and are preserved by server wipes. Collections reference `factions.id`; users are members and change authors; no automatic SteamID-to-game-nickname mapping is made. Books, magazines, tapes and other items can be entered manually by game item ID. Automatic mod catalog imports are not implemented.
+
+Sessions last 30 days and survive process restarts in the persistent SQLite database. Random tokens are stored only as SHA-256 hashes. HTTPS cookies use the `__Host-` prefix, Secure, HttpOnly and SameSite=Lax. Login attempts expire after 10 minutes, are bound to the initiating browser and consumed once. Assertions require signed identity fields, the configured callback and Steam endpoint, fresh nonces, and server-side Steam verification with a 10-second timeout. Expired auth records are pruned during login requests. Logout revokes only the current browser session.
+
+The automated auth tests mock Steam verification and exercise the HTTP flow, account isolation, token rotation, logout protection, malformed callbacks, expired sessions and wipe preservation. A real Steam account/browser round-trip must be checked on the configured public domain after deployment.
+
+
+## Factions and shared inventory
+
+Migration `003_factions.sql` adds factions, memberships, hashed invitations, faction items and an item change audit. No item belongs to a user: `(faction_id, item_key)` is the item’s unique key; `updated_by` identifies only its last editor. The same game ID can have independent quantities in different factions. Each account has at most one faction, enforced by a unique database index. Creating a faction or accepting another faction’s invitation atomically leaves the previous faction. Shared items stay with their faction.
+
+In **Factions**, create a faction or accept an invitation after Steam login. The creator is its owner; invited users become members. Owners can invite, revoke invitations and remove members. Every user can leave. Leaders can transfer leadership to another member or disband the faction. A departing leader automatically passes leadership to the longest-standing remaining member (user ID breaks equal-date ties); if no members remain, the faction is disbanded, including its shared collection. The UI confirms these consequences before switching or leaving. Explicit and automatic leadership changes disable joining by link. Administrator roles are not implemented. Every member can edit the shared inventory in **Books**, including books, magazines, tapes and other items. A quantity of zero records a known item as absent; deletion removes it from the list. Saving an existing ID updates its metadata and quantity (the last saved edit wins).
+
+Each faction has one permanent invitation link, without expiry or usage limits. Its leader enables or disables joining by link; disabling immediately prevents previews and new joins, while existing members remain. Re-enabling restores the same URL. Only the leader can retrieve the link or change its state. Leadership changes disable joining until the new leader enables it.
+
+The link contains a random token in the URL fragment, so it is not sent with page requests. The browser preserves a pending invitation in sessionStorage through Steam login and requires an explicit Join action. To display the same URL after restarts, the random link token is stored in `faction_join_links`; session tokens remain hashed. Migration `005_faction_join_links.sql` disables old expiring invitations. Leaders must enable the new permanent link once. The interface shows faction creation only for users without a faction, uses the faction name as its heading, and groups leave/disband actions in the bottom danger section.
+
+All faction endpoints require a valid session. All mutations require `Origin` equal to `PUBLIC_ORIGIN`. Nonmembers cannot read or edit a faction, even by guessing its ID. Monitor wipes preserve factions and inventory; collection resets after game wipes must be handled separately.
+
+| Endpoint | Methods | Purpose |
+| --- | --- | --- |
+| `/api/factions` | GET, POST | List my factions / create with `{name}` |
+| `/api/factions/:id` | DELETE | Leader disbands faction and shared collection |
+| `/api/factions/:id/leader` | POST | Transfer leadership to `{userId}` within the faction |
+| `/api/factions/:id/members` | GET | List faction members |
+| `/api/factions/:id/members/:userId` | DELETE | Owner removes a member, or member leaves |
+| `/api/factions/:id/invites` | GET, POST | Leader retrieves / sets link state with `{enabled}` |
+| `/api/faction-invites/:token` | GET | Preview a valid invitation |
+| `/api/faction-invites/:token/accept` | POST | Accept invitation |
+| `/api/factions/:id/items` | GET | Read shared items |
+| `/api/factions/:id/items/:encodedItemKey` | PUT, DELETE | Set `{name,category,quantity}` / remove item |
+
+Categories: `book`, `magazine`, `tape`, `other`. Use the exact game full type, including the module prefix, such as `Base.BookCarpentry1` or a mod’s own identifier. This distinguishes equally named items from different mods. JSON writes are limited to 8 KiB. Item mutations are recorded in `faction_item_changes`; there is no audit viewer yet. Factions are managed on the website and are not synchronized with in-game factions.
+
+Migration `004_single_faction.sql` upgrades previous multiple memberships without deleting faction collections. It retains each user’s earliest leadership membership, otherwise earliest membership, and appoints the earliest remaining member in factions that lose their leader. If a legacy faction has no remaining members, its collection is retained in the database for operator recovery. Future membership changes follow the single-faction rule. Disbanding is irreversible and removes items, invitations and item audit records; the interface requires explicit confirmation. No database reset is needed.
+
+## Vanilla skill books
+
+The Books page is a faction checklist: 24 vanilla Build 42 skills, sorted by their English names, with volumes 1–5 (120 books). Ukrainian translations appear in smaller muted parentheses beside each English skill name; English mode shows the English name once. The five volume columns use accessible native checkboxes and the table scrolls horizontally on narrow screens.
+
+The catalog in `public/js/books.js` follows the [vanilla skill-book XP definitions](https://github.com/Project-Zomboid-Community-Modding/ProjectZomboid-Vanilla-Lua/blob/main/server/XpSystem/XPSystem_SkillBook.lua) and [official literature item keys](https://projectzomboid.com/modding/zombie/scripting/objects/ItemKey.Literature.html), checked on 2026-10-12. Scope is skill books with five volumes, rather than ordinary leisure books or recipe magazines. Game IDs deliberately differ from some display names: Agriculture uses BookFarming, Animal Care uses BookHusbandry, Electrical uses BookElectrician, Knapping uses BookFlintKnapping, Mechanics uses BookMechanic, and Welding uses BookMetalWelding.
+
+Checkboxes use the existing faction items API: quantity above zero means present, checking saves one and unchecking saves zero. Existing matching item IDs are recognized immediately. Changes persist across reloads for all faction members and retain the item audit trail. A failed save restores the last loaded state and shows an error. No schema migration is needed for this table. The old manual collection form is replaced; existing custom items remain stored but are not displayed in the vanilla table. Automatic mod catalogs and magazine/tape tables are future work.
+
+
+## Steam names and avatars
+
+Set `STEAM_API_KEY` in `.env` locally or in Railway service variables, then restart with `npm start`. Obtain a user Web API key from [Steam API key registration](https://steamcommunity.com/dev/apikey). It is a server-only setting and is never included in API responses, HTML or browser JavaScript. OpenID login does not require this key.
+
+Migration `006_steam_profiles.sql` adds nullable names, avatar URLs and cache timestamps. The server calls [GetPlayerSummaries](https://partner.steamgames.com/doc/webapi/ISteamUser#GetPlayerSummaries) after login and when reading the current account or faction members. Existing sessions populate automatically on the next page load after configuration. Profile reads are cached for six hours, failures retry after ten minutes, and concurrent requests share pending lookups. Calls batch up to 100 SteamIDs with a five-second timeout. Steam outages preserve cached profiles and do not prevent successful login.
+
+The header, faction member list and leadership picker show Steam display names; the header and members also show avatars, with a preview of the selected leadership candidate. Equal display names are distinguished by the last four SteamID digits in the picker, and full IDs appear in profile link tooltips. All profile links use verified SteamIDs. Names are rendered as text. Avatar URLs must be HTTPS on the allowed Steam CDN hosts; images use no-referrer and fall back to initials if unavailable. Without a configured key, placeholders and the last four ID digits are displayed. Names and avatars are preserved by game-server wipes.
+
+Faction property pages use `Faction name - Localized page name` for the heading and browser tab title (also recorded in AGENTS.md for future work). The Books page has a Print button that opens the browser print dialog. Print styles output the title, collection count and table on a white background with explicit check marks, excluding navigation, account controls and faction management. Printing uses the current loaded faction checklist.

@@ -4,12 +4,14 @@ function json(res, code, data) {
   res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
   res.end(JSON.stringify(data));
 }
-function createServer(repository, monitor) {
-  return http.createServer((req, res) => {
+function createServer(repository, monitor, auth, factions) {
+  return http.createServer(async (req, res) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'none'");
+    res.setHeader('Content-Security-Policy', "default-src 'self'; img-src 'self' https://avatars.steamstatic.com https://avatars.fastly.steamstatic.com https://steamcdn-a.akamaihd.net; script-src 'self'; style-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'none'");
     try {
       const url = new URL(req.url, 'http://localhost');
+      if (auth && await auth.handle(req, res, url, json)) return;
+      if (factions && await factions.handle(req, res, url, json)) return;
       if (req.method !== 'GET') { res.setHeader('Allow', 'GET'); return json(res, 405, { error: 'Method not allowed' }); }
       if (url.pathname === '/health') {
         const s = repository.status();

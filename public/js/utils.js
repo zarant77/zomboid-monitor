@@ -52,5 +52,25 @@ window.ZM = {};
     }
     fragment.append(document.createTextNode(value.slice(start)));container.replaceChildren(fragment);
   }
+  const userName = user => user.displayName || `Steam · ${String(user.steamId || '').slice(-4)}`;
+  function userBadge(user) {
+    const link = document.createElement('a'); link.className = 'steam-profile';
+    link.href = `https://steamcommunity.com/profiles/${user.steamId}`; link.target = '_blank'; link.rel = 'noopener noreferrer';
+    link.title = `SteamID: ${user.steamId}`;
+    const avatar = document.createElement('span'); avatar.className = 'steam-avatar';
+    const initial = document.createElement('span'); initial.textContent = userName(user).slice(0, 1).toUpperCase(); initial.setAttribute('aria-hidden', 'true'); avatar.append(initial);
+    if (user.avatarUrl) {
+      try {
+        const url = new URL(user.avatarUrl);
+        if (url.protocol === 'https:' && ['avatars.steamstatic.com','avatars.fastly.steamstatic.com','steamcdn-a.akamaihd.net'].includes(url.hostname)) {
+          const image = document.createElement('img'); image.src = url.href; image.alt = ''; image.referrerPolicy = 'no-referrer'; image.width = 32; image.height = 32;
+          image.addEventListener('error', () => image.remove(), { once: true }); avatar.append(image);
+        }
+      } catch {}
+    }
+    const name = document.createElement('span'); name.className = 'steam-name'; name.textContent = userName(user);
+    link.append(avatar, name); return link;
+  }
+  Object.assign(ZM,{userName,userBadge});
   Object.assign(ZM,{$,escapeHtml,number,timestamp,time,duration,bool,ping,icon,text,get,keyed,metrics,segments,safeDescription});
 })();

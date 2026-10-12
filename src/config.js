@@ -10,7 +10,17 @@ function integer(name, fallback, max = Number.MAX_SAFE_INTEGER) {
 const serverTimezone = process.env.SERVER_TIMEZONE?.trim() || DEFAULT_SERVER_TIMEZONE;
 try { new Intl.DateTimeFormat('en', { timeZone: serverTimezone }); }
 catch { throw new Error(`Invalid SERVER_TIMEZONE: ${serverTimezone}`); }
+const originValue = process.env.PUBLIC_ORIGIN?.trim() || (process.env.NODE_ENV === 'production' ? '' : `http://localhost:${integer('PORT', 3000, 65535)}`);
+let publicOrigin;
+try {
+  const url = new URL(originValue);
+  if (url.username || url.password || url.search || url.hash || url.pathname !== '/' ||
+      (url.protocol !== 'https:' && !(url.protocol === 'http:' && ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)))) throw new Error();
+  publicOrigin = url.origin;
+} catch { throw new Error('PUBLIC_ORIGIN must be a public HTTPS origin (or HTTP localhost for development)'); }
 module.exports = {
+  publicOrigin,
+  steamApiKey: process.env.STEAM_API_KEY?.trim() || null,
   serverTimezone,
   serverWipeId: process.env.SERVER_WIPE_ID?.trim() || null,
   port: integer('PORT', 3000, 65535),
