@@ -1,6 +1,6 @@
 (() => {
   const $ = id => document.getElementById(id);
-  let busy = false, notice = null;
+  let busy = false, notice = null, customErrorKey = null;
   let factions = [], active = null, members = [], joinLink = { enabled: false, url: null }, items = [], customSeries = [], pending = null, errorKey = null, generation = 0;
   try { pending = sessionStorage.getItem('zm.invite'); } catch {}
   function captureInvite() {
@@ -19,6 +19,9 @@
   function list(id, values, render) { $(id).replaceChildren(...values.map(value => { const li = document.createElement('li'); render(li, value); return li; })); }
   function render() {
     $('faction-error').hidden = !errorKey; $('faction-error').textContent = errorKey ? t(errorKey) : '';
+    $('custom-book-error').hidden = !customErrorKey;
+    $('custom-book-error').textContent = customErrorKey ? t(customErrorKey) : '';
+    $('custom-book-name').setAttribute('aria-invalid',String(Boolean(customErrorKey)));
     const books = location.hash === '#books';
     $('menu-factions').querySelector('span').textContent = t('Faction');
     const pageName = t(books ? 'Books' : 'Faction');
@@ -115,13 +118,16 @@
       dialog.showModal();
     });
   }
-  async function run(action) {
+  async function run(action, inlineError = false) {
     if (busy) return;
-    busy = true; errorKey = null; notice = null;
+    busy = true; errorKey = null; customErrorKey = null; notice = null;
+    $('custom-book-error').hidden = true;
     document.querySelectorAll('.books-page button').forEach(node => { node.disabled = true; });
     ZM.renderBookCollection(active?.id, items, true, changeBook, customSeries, removeCustomBook);
     try { await action(); }
-    catch (error) { errorKey = ['Invitation unavailable','Owner required','Faction not found','Invalid name','Choose another member','This book already exists','Add at least one volume','Use a full game item ID','Duplicate volume or item ID'].includes(error.message) ? error.message : 'Faction operation failed. Refresh and try again.'; }
+    catch (error) { const message = ['Invitation unavailable','Owner required','Faction not found','Invalid name','Choose another member','This book already exists','Add at least one volume','Use a full game item ID','Duplicate volume or item ID'].includes(error.message) ? error.message : 'Faction operation failed. Refresh and try again.';
+      if (inlineError) customErrorKey = message; else errorKey = message;
+    }
     finally { busy = false; document.querySelectorAll('.books-page button').forEach(node => { node.disabled = false; }); render(); }
   }
   function form(id, action) {
@@ -129,7 +135,7 @@
       event.preventDefault(); const node = event.currentTarget, submit = node.querySelector('button');
       if (busy) return;
       const data = Object.fromEntries(new FormData(node)); submit.disabled = true;
-      run(() => action(data, node)).finally(() => { submit.disabled = false; });
+      run(() => action(data, node), id === 'add-custom-book').finally(() => { submit.disabled = false; });
     });
   }
   form('create-faction', async (data, node) => { if (active && !await confirmAction('Create faction', consequence(), true)) return; const result = await api('/api/factions', 'POST', data); node.reset(); await refresh(result.faction.id); });
@@ -137,7 +143,11 @@
     const result = await api(`/api/factions/${active.id}/invites`, 'POST', { enabled: !joinLink.enabled });
     joinLink = result.invite;
   }));
+  $('custom-book-name').addEventListener('input', () => {
+    customErrorKey = null; $('custom-book-error').hidden = true; $('custom-book-name').setAttribute('aria-invalid','false');
+  });
   $('show-custom-book').addEventListener('click', () => {
+    customErrorKey = null; $('custom-book-error').hidden = true; $('custom-book-name').setAttribute('aria-invalid','false');
     $('add-custom-book').hidden = !$('add-custom-book').hidden;
     $('show-custom-book').setAttribute('aria-expanded',String(!$('add-custom-book').hidden));
     if (!$('add-custom-book').hidden) $('custom-book-name').focus();

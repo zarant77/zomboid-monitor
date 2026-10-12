@@ -1,4 +1,6 @@
-const vanillaBookIds = new Set(require('../public/js/books').skills.flatMap(skill => skill.volumes.map(book => book.itemKey)));
+const vanillaSkills = require('../public/js/books').skills;
+const vanillaBookIds = new Set(vanillaSkills.flatMap(skill => skill.volumes.map(book => book.itemKey)));
+const vanillaBookNames = new Set(vanillaSkills.map(skill => skill.name.toLowerCase()));
 const { randomBytes } = require('node:crypto');
 class HttpError extends Error { constructor(status, message) { super(message); this.status = status; } }
 const fail = (status, message) => { throw new HttpError(status, message); };
@@ -127,6 +129,7 @@ function createFactions(db, auth, { publicOrigin }, profiles = null) {
         }
         if (!key && req.method === 'POST') {
           const body = await readBody(req), name = text(body.name,160,'book name');
+          if (vanillaBookNames.has(name.toLowerCase())) fail(409,'This book already exists');
           const localizedName = null;
           const modName = null;
           if (body.volumes === undefined) {

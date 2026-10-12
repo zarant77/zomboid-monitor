@@ -59,7 +59,7 @@
         input.checked = present;
         input.disabled = busy || !factionId;
         input.setAttribute('aria-label', `${skill.name} · ${ZM.t('bookVolume', { volume: book.volume })}`);
-        input.title = book.itemKey;
+        input.title = `${skill.name} · ${ZM.t('bookVolume', { volume:book.volume })}`;
         input.onchange = () => onToggle(book, input.checked);
       }
     }

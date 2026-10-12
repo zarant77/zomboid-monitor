@@ -313,7 +313,7 @@
   "Remove custom row": "Прибрати модовий рядок",
   "The custom row will be removed. Recorded inventory is kept.": "Модовий рядок буде прибрано з таблиці. Записаний облік предметів збережеться.",
   "Custom book added.": "Модові книжки додано.",
-  "This book already exists": "Книжка з такою назвою або ID вже є в таблиці.",
+  "This book already exists": "Книжка з такою назвою вже є в таблиці.",
   "Add at least one volume": "Вкажіть ID хоча б одного тому.",
   "Use a full game item ID": "Вкажіть повний ID предмета, наприклад MyMod.BookArchery1.",
   "Duplicate volume or item ID": "ID кожного тому має бути унікальним.",

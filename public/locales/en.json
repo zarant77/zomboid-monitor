@@ -313,7 +313,7 @@
   "Remove custom row": "Remove custom row",
   "The custom row will be removed. Recorded inventory is kept.": "The custom row will be removed. Recorded inventory is kept.",
   "Custom book added.": "Custom book added.",
-  "This book already exists": "This book already exists",
+  "This book already exists": "A book with this name is already in the table.",
   "Add at least one volume": "Add at least one volume",
   "Use a full game item ID": "Use a full game item ID",
   "Duplicate volume or item ID": "Duplicate volume or item ID",
