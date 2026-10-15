@@ -1368,3 +1368,24 @@ dialog::backdrop {
 .custom-book-add>button,.custom-book-add button[type="submit"] { width:44px; height:44px; min-height:44px; padding:0; margin:0; line-height:1; flex-shrink:0; }
 #custom-book-error { grid-column:1 / -1; margin:0; font-size:12px; }
 #custom-book-name[aria-invalid="true"] { border-color:var(--red); }
+
+.my-character { display:grid; grid-template-columns:minmax(190px,230px) minmax(0,1fr); gap:12px 20px; padding:14px 16px; }
+.my-character .panel-heading { grid-column:1 / -1; flex-wrap:wrap; gap:10px; margin-bottom:0; }
+.my-character .panel-heading h2 { margin-right:auto; }
+.my-character-summary { display:flex; flex-direction:column; justify-content:center; align-items:flex-start; gap:10px; margin:0; }
+.my-character-kills { display:flex; align-items:baseline; gap:8px; color:var(--muted); }
+.my-character-kills strong { font-size:40px; font-weight:800; line-height:1; color:var(--green); }
+.my-character-ranking { display:flex; flex-direction:column; gap:3px; }
+.my-character-ranking strong { font-size:16px; }
+.my-character-ranking span { font-size:12px; color:var(--muted); }
+.my-character .detail-grid { grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; }
+.my-character .metric { padding:7px 9px; }
+.my-character .metric strong { font-size:14px; }
+.my-character .metric span { font-size:10px; line-height:1.3; }
+@media(min-width:1200px) { .my-character .detail-grid { grid-template-columns:repeat(5,minmax(0,1fr)); } }
+@media(max-width:800px) {
+  .my-character { grid-template-columns:minmax(0,1fr); gap:12px; }
+  .my-character-summary { flex-direction:row; justify-content:flex-start; align-items:center; gap:20px; }
+  .my-character-kills strong { font-size:34px; }
+}
+@media(max-width:480px) { .my-character .detail-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .my-character-summary { gap:14px; } }

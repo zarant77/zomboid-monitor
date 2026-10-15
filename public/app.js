@@ -36,6 +36,7 @@
   }
   function renderPlayers() {
     ZM.renderRecords(state.board);
+    ZM.renderPersonalCharacter(state.board,ZM.user);
     ZM.tableRows('players',state.players.slice().sort((a,b)=>b.currentKills-a.currentKills));
     text('online-count',`(${state.players.length})`);
     const s=state.status;
@@ -134,6 +135,7 @@
     try{await navigator.clipboard.writeText(address);state.feedback={key:'copied',params:{address}};text('connection-message',t('copied',{address}));button.setAttribute('aria-label',t("Server address copied"));}
     catch{state.feedback={key:'copyUnavailable',params:{address}};text('connection-message',t('copyUnavailable',{address}));}
   });
+  document.addEventListener('accountchange',()=>ZM.renderPersonalCharacter(state.board,ZM.user));
   document.addEventListener('languagechange',()=>{
     if(state.status){renderServer(state.status);renderPlayers();renderEvents();renderMods(state.mods);renderStats();}
     ZM.relocalizePlayer();

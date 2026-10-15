@@ -318,5 +318,11 @@
   "Use a full game item ID": "Use a full game item ID",
   "Duplicate volume or item ID": "Duplicate volume or item ID",
   "Book name": "Book name",
-  "Add a mod book": "Add a mod book"
+  "Add a mod book": "Add a mod book",
+  "Your character": "Your character",
+  "personalRank": "Rank {rank} of {total}",
+  "personalBehind": "Behind the leader: {count} kills",
+  "personalAhead": "Ahead of second place: {count} kills",
+  "personalTied": "Tied for first place",
+  "personalOnly": "Only player in the leaderboard"
 }

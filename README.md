@@ -278,3 +278,7 @@ Faction property pages use `Faction name - Localized page name` for the heading 
 A plus button below the Books table opens one original-name input. Confirm with the check button or Enter to add a faction-wide row with five volumes. Mod rows are never translated and do not display a mod name. Checkboxes use generated internal inventory keys; users do not need game item IDs. Rows remain alphabetized with vanilla skills and appear on mobile and in print.
 
 Migration `008_custom_books_five_volumes.sql` clears old custom translations and mod labels, fills missing volumes and preserves existing checked volumes. The name-only POST `/api/factions/:id/custom-books` generates five unique keys. Deleting a custom row preserves recorded inventory.
+
+## Personal character statistics
+
+Signed-in users see a panel immediately below the server overview, above online players and server statistics when their cached Steam display name exactly matches a tracked player name (case-sensitive). It shows current kills, competition rank (ties share a rank), gap to the leader or lead over second place, deaths, today's gain and session/history metrics. Rankings use all tracked players' current kills, including offline players, independently of leaderboard filters. Name matching is a display heuristic and does not establish identity or grant access. Guests and users without a matching Steam name do not see the panel.

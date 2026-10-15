@@ -65,6 +65,39 @@
       },(element,p)=>{element.textContent=p.id==='empty'?t('No record yet'):p.name;});
     });
   }
+  function personalCharacter(players,user) {
+    if (!user?.displayName) return null;
+    const player = players.find(p => p.name === user.displayName);
+    if (!player || !Number.isFinite(player.currentKills)) return null;
+    const others = players.filter(p => p.id !== player.id && Number.isFinite(p.currentKills));
+    const rank = 1 + others.filter(p => p.currentKills > player.currentKills).length;
+    const bestOther = others.length ? Math.max(...others.map(p => p.currentKills)) : null;
+    return { player, rank, total:players.length, gap:bestOther == null ? null : Math.abs(bestOther-player.currentKills),
+      comparison:bestOther == null ? 'only' : rank > 1 ? 'behind' : bestOther === player.currentKills ? 'tied' : 'ahead' };
+  }
+  function renderPersonalCharacter(players,user) {
+    const info = personalCharacter(players,user), panel = $('my-character');
+    panel.hidden = !info;
+    if (!info) return;
+    const {player,rank,total,gap,comparison} = info;
+    $('my-character-name').textContent = player.name;
+    $('my-character-name').dataset.playerId = player.id;
+    $('my-character-status').innerHTML = statusMarkup(player.online);
+    $('my-character-kills').textContent = number(player.currentKills);
+    $('my-character-rank').textContent = t('personalRank',{rank:number(rank),total:number(total)});
+    $('my-character-gap').textContent = t({behind:'personalBehind',ahead:'personalAhead',tied:'personalTied',only:'personalOnly'}[comparison],{count:number(gap)});
+    metrics($('my-character-metrics'),[
+      {label:t('Gain (today)'),value:`+${number(player.killGainToday)}`,tone:'tone-green'},
+      {label:t('Deaths'),value:number(player.deaths)},
+      {label:t('Highest observed kills'),value:number(player.maxKills)},
+      {label:t('Most kills in one session'),value:number(player.bestSessionKills)},
+      {label:player.online?t('Current session'):t('Last observed session'),value:duration(player.currentSessionSeconds)},
+      {label:t('Longest observed session'),value:duration(player.longestSessionSeconds)},
+      {label:t('Join count'),value:number(player.joinCount)},
+      {label:t('First seen'),value:timestamp(player.firstSeen)},
+      {label:t('Last seen'),value:player.online?t('Now'):timestamp(player.lastSeen)}
+    ]);
+  }
   function renderDetails(player) {
     details=player;$('player-dialog-title').textContent=player.name;
     $('player-dialog-status').innerHTML=statusMarkup(player.online);
@@ -110,5 +143,5 @@
     });
     dialog.addEventListener('close',()=>{selectedId=null;details=null;if(opener?.isConnected)opener.focus();opener=null;});
   }
-  Object.assign(ZM,{playerRecords,renderRecords,sortLeaderboard,tableRows,setupPlayers,refreshPlayer,relocalizePlayer:()=>{if(details)renderDetails(details);}});
+  Object.assign(ZM,{personalCharacter,renderPersonalCharacter,playerRecords,renderRecords,sortLeaderboard,tableRows,setupPlayers,refreshPlayer,relocalizePlayer:()=>{if(details)renderDetails(details);}});
 })();

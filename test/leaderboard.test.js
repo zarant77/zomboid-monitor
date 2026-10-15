@@ -39,3 +39,19 @@ test('record holders show historical kills, all ties and no fabricated zero reco
   for(const r of context.ZM.playerRecords([]))assert.equal(r.winners.length,0);
   for(const r of context.ZM.playerRecords([{id:1,name:'New',maxKills:0,deaths:0,bestSessionKills:0,longestSessionSeconds:0}]))assert.equal(r.winners.length,0);
 });
+test('personal character uses exact Steam display name and compares current kills across all players',()=>{
+  const personal=context.ZM.personalCharacter;
+  assert.equal(personal(players,null),null);
+  assert.equal(personal(players,{displayName:'alpha'}),null);
+  assert.equal(personal(players,{displayName:'Missing'}),null);
+  const behind=personal(players,{displayName:'Beta'});
+  assert.equal(behind.rank,2); assert.equal(behind.gap,100); assert.equal(behind.comparison,'behind');
+  const leader=personal(players,{displayName:'Alpha'});
+  assert.equal(leader.rank,1); assert.equal(leader.gap,100); assert.equal(leader.comparison,'ahead');
+  const tied=personal([...players,{id:4,name:'Other',currentKills:200}],{displayName:'Alpha'});
+  assert.equal(tied.rank,1); assert.equal(tied.gap,0); assert.equal(tied.comparison,'tied');
+  const only=personal([players[0]],{displayName:'Beta'});
+  assert.equal(only.comparison,'only'); assert.equal(only.gap,null);
+  const reset=personal(players.map(p=>p.name==='Alpha'?{...p,currentKills:0,maxKills:9999}:p),{displayName:'Alpha'});
+  assert.equal(reset.rank,3); assert.equal(reset.gap,100);
+});

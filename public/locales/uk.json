@@ -318,5 +318,11 @@
   "Use a full game item ID": "Вкажіть повний ID предмета, наприклад MyMod.BookArchery1.",
   "Duplicate volume or item ID": "ID кожного тому має бути унікальним.",
   "Book name": "Назва книжки",
-  "Add a mod book": "Додати модову книжку"
+  "Add a mod book": "Додати модову книжку",
+  "Your character": "Ваш персонаж",
+  "personalRank": "Місце {rank} з {total}",
+  "personalBehind": "До лідера: {count} вбивств",
+  "personalAhead": "Відрив від другого місця: {count} вбивств",
+  "personalTied": "Ділите перше місце",
+  "personalOnly": "Єдиний гравець у рейтингу"
 }
