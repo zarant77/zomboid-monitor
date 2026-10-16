@@ -321,9 +321,12 @@
   "Book name": "Назва книжки",
   "Add a mod book": "Додати модову книжку",
   "Your character": "Ваш персонаж",
-  "personalRank": "Місце {rank} з {total}",
-  "personalBehind": "До лідера: {count} вбивств",
-  "personalAhead": "На {count} вбивств попереду",
+  "personalRank": "№{rank} із {total}",
+  "personalBehind": "{count} зомбі до лідера",
+  "personalAhead": "На {count} зомбі попереду",
   "personalTied": "Ділите перше місце",
-  "personalOnly": "Єдиний гравець у рейтингу"
+  "personalOnly": "Єдиний гравець у рейтингу",
+  "Zombies killed": "Зомбі вбито",
+  "Nearest rival": "Відрив від найближчого суперника",
+  "To first place": "До першого місця"
 }

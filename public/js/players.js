@@ -85,6 +85,10 @@
     $('my-character-status').innerHTML = statusMarkup(player.online);
     $('my-character-kills').textContent = number(player.currentKills);
     $('my-character-rank').textContent = t('personalRank',{rank:number(rank),total:number(total)});
+    panel.dataset.comparison = comparison;
+    panel.querySelector('.my-character-gap-icon').textContent = {behind:'↗',ahead:'↑',tied:'=',only:'★'}[comparison];
+    $('my-character-gap-context').textContent = comparison === 'ahead' ? t('Nearest rival') : comparison === 'behind' ? t('To first place') : '';
+    $('my-character-gap-context').hidden = !['ahead','behind'].includes(comparison);
     $('my-character-gap').textContent = t({behind:'personalBehind',ahead:'personalAhead',tied:'personalTied',only:'personalOnly'}[comparison],{count:number(gap)});
     metrics($('my-character-metrics'),[
       {label:t('Gain (today)'),value:`+${number(player.killGainToday)}`,tone:'tone-green'},

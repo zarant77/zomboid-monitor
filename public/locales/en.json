@@ -321,9 +321,12 @@
   "Book name": "Book name",
   "Add a mod book": "Add a mod book",
   "Your character": "Your character",
-  "personalRank": "Rank {rank} of {total}",
-  "personalBehind": "Behind the leader: {count} kills",
-  "personalAhead": "Ahead of second place: {count} kills",
+  "personalRank": "№{rank} of {total}",
+  "personalBehind": "{count} zombies to the leader",
+  "personalAhead": "{count} zombies ahead",
   "personalTied": "Tied for first place",
-  "personalOnly": "Only player in the leaderboard"
+  "personalOnly": "Only player in the leaderboard",
+  "Zombies killed": "Zombies killed",
+  "Nearest rival": "Gap to the nearest rival",
+  "To first place": "To first place"
 }

@@ -320,10 +320,13 @@
   "Book name": "Buchname",
   "Add a mod book": "Mod-Buch hinzufügen",
   "Your character": "Dein Charakter",
-  "personalRank": "Rang {rank} von {total}",
-  "personalBehind": "Rückstand auf den Spitzenreiter: {count} Kills",
-  "personalAhead": "Vorsprung auf Platz zwei: {count} Kills",
+  "personalRank": "№{rank} von {total}",
+  "personalBehind": "{count} Zombies bis zum Spitzenreiter",
+  "personalAhead": "{count} Zombies Vorsprung",
   "personalTied": "Geteilter erster Platz",
   "personalOnly": "Einziger Spieler in der Rangliste",
-  "Switch to German": "Zu Deutsch wechseln"
+  "Switch to German": "Zu Deutsch wechseln",
+  "Zombies killed": "Zombies getötet",
+  "Nearest rival": "Vorsprung vor dem nächsten Rivalen",
+  "To first place": "Bis zum ersten Platz"
 }
