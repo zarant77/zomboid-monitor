@@ -125,6 +125,7 @@
   "No players online.": "Немає гравців онлайн.",
   "Choose language": "Вибрати мову",
   "Switch to English": "Перемкнути на англійську",
+  "Switch to German": "Перемкнути на німецьку",
   "Switch to Ukrainian": "Перемкнути на українську",
   "modsReported": "{total} ({reported} повідомлено)",
   "stateNote": "Поточний {state}: {duration} · Зафіксований простій (за всю історію): {downtime}",
@@ -322,7 +323,7 @@
   "Your character": "Ваш персонаж",
   "personalRank": "Місце {rank} з {total}",
   "personalBehind": "До лідера: {count} вбивств",
-  "personalAhead": "Відрив від другого місця: {count} вбивств",
+  "personalAhead": "На {count} вбивств попереду",
   "personalTied": "Ділите перше місце",
   "personalOnly": "Єдиний гравець у рейтингу"
 }

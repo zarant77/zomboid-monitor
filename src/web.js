@@ -19,6 +19,7 @@ function renderEnglish(html) {
 const definitions = [
   ['/js/i18n.js', 'js/i18n.js', 'text/javascript; charset=utf-8'],
   ['/locales/en.json', 'locales/en.json', 'application/json; charset=utf-8'],
+  ['/locales/de.json', 'locales/de.json', 'application/json; charset=utf-8'],
   ['/locales/uk.json', 'locales/uk.json', 'application/json; charset=utf-8'],
   ['/', 'index.html', 'text/html; charset=utf-8'],
   ['/index.html', 'index.html', 'text/html; charset=utf-8'],

@@ -1114,12 +1114,12 @@ dialog::backdrop {
 }
 
 .language-switcher {position:absolute;top:20px;right:20px;display:flex;gap:5px;padding:4px;border:1px solid var(--border);border-radius:12px;background:#061015d9;z-index:2}
-.language-switcher button {display:flex;align-items:center;gap:6px;padding:7px 9px;border:1px solid transparent;border-radius:8px;background:transparent;color:var(--muted);font-size:11px;letter-spacing:.05em;cursor:pointer}
+.language-switcher button {display:flex;align-items:center;justify-content:center;padding:7px 9px;border:1px solid transparent;border-radius:8px;background:transparent;color:var(--muted);font-size:11px;letter-spacing:.05em;cursor:pointer}
 .language-switcher svg {width:24px;height:18px;opacity:.65}
 .language-switcher button[aria-pressed="true"] {background:#00d58c18;border-color:#00d58c66;color:var(--text)}
 .language-switcher button[aria-pressed="true"] svg,.language-switcher button:hover svg {opacity:1}
 .language-switcher button:focus-visible {outline:2px solid var(--green);outline-offset:2px}
-@media(max-width:600px){.language-switcher{top:12px;right:12px}.language-switcher button{padding:6px}.language-switcher button span{display:none}.brand{padding-right:90px}}
+@media(max-width:600px){.language-switcher{top:12px;right:12px}.language-switcher button{padding:6px}.brand{padding-right:90px}}
 
 .status-marker {position:relative;display:grid;place-items:center;width:32px;height:32px;flex-shrink:0}
 .status-marker .status-dot {box-shadow:none}
