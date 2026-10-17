@@ -63,6 +63,27 @@
         input.onchange = () => onToggle(book, input.checked);
       }
     }
+    const missingOnly = document.getElementById('show-missing-books').checked;
+    const missingList = document.getElementById('missing-books-list');
+    document.getElementById('books-table-wrap').hidden = missingOnly;
+    missingList.hidden = !missingOnly;
+    const missingBooks = catalog.flatMap(skill => skill.volumes
+      .filter(book => !(stored.get(book.itemKey)?.quantity > 0))
+      .map(book => ({ skill, book })));
+    document.getElementById('missing-books-empty').hidden = !missingOnly || missingBooks.length > 0;
+    missingList.replaceChildren();
+    if (missingOnly) for (const { skill, book } of missingBooks) {
+      const li = document.createElement('li');
+      const label = document.createElement('label'); label.className = 'book-check missing-book';
+      const input = document.createElement('input'); input.type = 'checkbox';
+      input.disabled = busy || !factionId;
+      input.dataset.itemKey = book.itemKey;
+      input.onchange = () => onToggle(book, input.checked);
+      const name = document.createElement('span');
+      const translation = skill.custom ? skill.name : ZM.t(`bookSkill.${skill.name}`);
+      name.textContent = `${skill.name}${translation !== skill.name ? ` (${translation})` : ''} · ${ZM.t('bookVolume', { volume: book.volume })}`;
+      label.append(input, name); li.append(label); missingList.append(li);
+    }
     document.getElementById('books-progress').textContent = `${owned} / ${catalog.reduce((sum,skill) => sum + skill.volumes.length,0)}`;
   }
   ZM.renderBookCollection = renderBookCollection;

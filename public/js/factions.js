@@ -37,6 +37,7 @@
     $('leave-faction').hidden = !active;
     $('collection-content').hidden = !books;
     $('print-books').hidden = !books || !active;
+    $('books-heading-actions').hidden = !books || !active;
     $('disband-faction').hidden = active?.role !== 'owner';
     $('invite-state').textContent = t(joinLink.enabled ? 'Enabled' : 'Disabled');
     $('toggle-invite').setAttribute('aria-checked', String(joinLink.enabled));
@@ -184,6 +185,7 @@
     try { await navigator.clipboard.writeText($('invite-url').value); notice = 'Link copied.'; }
     catch { $('invite-url').focus(); $('invite-url').select(); notice = 'Select and copy the invitation link.'; }
   }));
+  $('show-missing-books').addEventListener('change', render);
   $('print-books').addEventListener('click', () => window.print());
   document.addEventListener('accountchange', () => { generation++; if (!ZM.user) refresh(); else run(() => refresh()); });
   document.addEventListener('languagechange', render);

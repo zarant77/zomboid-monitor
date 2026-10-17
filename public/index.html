@@ -101,7 +101,7 @@
 </main>
 </div>
 <section id="books-view" class="panel books-page" aria-labelledby="books-heading" hidden>
-<div class="faction-page-heading"><div><div class="eyebrow"><span data-i18n="YOUR TEAM"></span></div><h1 id="books-heading"><span data-i18n="Faction"></span></h1></div><button id="print-books" class="icon-button" type="button" hidden data-i18n-aria-label="Print" data-i18n-title="Print"><svg class="icon" aria-hidden="true"><use href="#i-printer"/></svg></button></div>
+<div class="faction-page-heading"><div><div class="eyebrow"><span data-i18n="YOUR TEAM"></span></div><h1 id="books-heading"><span data-i18n="Faction"></span></h1></div><div id="books-heading-actions" class="books-heading-actions" hidden><label class="book-check missing-books-toggle"><input id="show-missing-books" type="checkbox"><span data-i18n="Show missing books"></span></label><button id="print-books" class="icon-button" type="button" hidden data-i18n-aria-label="Print" data-i18n-title="Print"><svg class="icon" aria-hidden="true"><use href="#i-printer"/></svg></button></div></div>
 <p id="faction-error" class="auth-error" role="alert" hidden></p>
 <p id="faction-success" role="status" hidden></p>
 <div id="invite-preview" class="faction-card invitation-card" hidden><div class="eyebrow"><span data-i18n="Invitation"></span></div><h2 id="invite-name"></h2><p id="invite-consequence"></p><div class="faction-actions"><button id="accept-invite" class="primary-action" type="button"><span data-i18n="Join faction"></span></button><button id="dismiss-invite" type="button"><span data-i18n="Dismiss invitation"></span></button></div></div>
@@ -119,7 +119,9 @@
 <div id="collection-content">
 
 <div class="books-table-heading"><span class="eyebrow"><span data-i18n="Skill books"></span></span><span id="books-progress" class="mono" aria-live="polite">0 / 120</span></div>
-<div class="table-wrap books-table-wrap"><table class="books-table" aria-label="" data-i18n-aria-label="Faction skill book collection"><thead><tr><th scope="col"><span data-i18n="Name"></span></th><th scope="col"><span data-i18n="Volume 1"></span></th><th scope="col"><span data-i18n="Volume 2"></span></th><th scope="col"><span data-i18n="Volume 3"></span></th><th scope="col"><span data-i18n="Volume 4"></span></th><th scope="col"><span data-i18n="Volume 5"></span></th></tr></thead><tbody id="books-table-body"></tbody></table></div>
+<p id="missing-books-empty" data-i18n="All books collected" hidden></p>
+<ul id="missing-books-list" class="clean-list" hidden></ul>
+<div id="books-table-wrap" class="table-wrap books-table-wrap"><table class="books-table" aria-label="" data-i18n-aria-label="Faction skill book collection"><thead><tr><th scope="col"><span data-i18n="Name"></span></th><th scope="col"><span data-i18n="Volume 1"></span></th><th scope="col"><span data-i18n="Volume 2"></span></th><th scope="col"><span data-i18n="Volume 3"></span></th><th scope="col"><span data-i18n="Volume 4"></span></th><th scope="col"><span data-i18n="Volume 5"></span></th></tr></thead><tbody id="books-table-body"></tbody></table></div>
 <div class="custom-book-add"><button id="show-custom-book" class="icon-button" type="button" data-i18n-aria-label="Add custom books" data-i18n-title="Add custom books" aria-expanded="false" aria-controls="add-custom-book">+</button><span class="custom-book-hint" data-i18n="Add a mod book"></span><form id="add-custom-book" hidden><input id="custom-book-name" aria-describedby="custom-book-error" name="name" maxlength="160" required data-i18n-aria-label="Book name" placeholder="Archery"><button class="primary-action" type="submit" data-i18n-aria-label="Add to faction" data-i18n-title="Add to faction">✓</button><p id="custom-book-error" class="auth-error" role="alert" hidden></p></form></div>
 </div>
 </div>

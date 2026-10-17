@@ -1325,7 +1325,8 @@ dialog::backdrop {
 .custom-book-volumes { grid-template-columns:repeat(5,minmax(0,1fr)); margin:12px 0; }
 .custom-book-form input { width:100%; min-width:0; }
 .custom-book-badge { display:inline-block; margin-left:8px; font-size:10px; font-weight:400; color:var(--blue); }
-.books-page .custom-book-remove { padding:2px 8px; margin-left:8px; background:transparent; color:var(--muted); font-size:18px; line-height:1; }
+.books-page .custom-book-remove { display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; padding:0; margin-left:8px; vertical-align:middle; background:transparent; color:var(--red); border-color:#ff626c55; font-size:22px; line-height:1; }
+.books-page .custom-book-remove:hover { border-color:var(--red); background:#ff626c14; }
 .book-volume-unavailable { color:var(--muted); align-self:center; }
 @media screen and (max-width:600px) { .custom-book-fields { grid-template-columns:1fr; } .custom-book-volumes { grid-template-columns:1fr; } .books-page .custom-book-remove { min-width:32px; min-height:32px; } }
 @media print { .custom-book-form,.custom-book-remove { display:none!important; } .custom-book-badge { color:#444; } }
@@ -1397,3 +1398,9 @@ dialog::backdrop {
   .my-character-kills strong { font-size:34px; }
 }
 @media(max-width:480px) { .my-character .detail-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .my-character-summary { display:flex; flex-direction:column; align-items:flex-start; gap:14px; } }
+
+.books-page .missing-books-toggle,.books-page .missing-book { flex-direction:row; align-items:center; justify-content:flex-start; gap:10px; }
+.books-heading-actions { display:flex; align-items:center; justify-content:flex-end; gap:16px; margin-left:auto; }
+.books-page .missing-books-toggle { margin:0; font-size:13px; }
+.books-page .missing-book { min-height:32px; cursor:pointer; }
+@media print { .missing-books-toggle { display:none!important; } }
