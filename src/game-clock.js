@@ -14,7 +14,9 @@ class GameClock {
   observe(at,elapsed,wasOnline,online) {
     const now=Date.parse(at),row=this.db.prepare('SELECT * FROM game_clock WHERE id=1').get();
     if(row.game_minutes == null || !Number.isFinite(now)) return;
-    const seconds=wasOnline && online && row.observed_at != null ? Math.max(0,(now-Math.max(now-elapsed*1000,row.observed_at))/1000) : 0;
+    // The previous observation determines whether the timer ran during this interval.
+    // An offline result stops it now; a successful result resumes it from now.
+    const seconds=wasOnline && row.observed_at != null ? Math.max(0,(now-Math.max(now-elapsed*1000,row.observed_at))/1000) : 0;
     this.db.prepare('UPDATE game_clock SET game_minutes=?,observed_at=? WHERE id=1').run((row.game_minutes+seconds*24/row.day_minutes)%1440,Math.max(now,row.observed_at || now));
   }
 }

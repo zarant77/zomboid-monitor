@@ -12,7 +12,8 @@
     "migrate": "node scripts/migrate.js",
     "start": "npm run migrate && node server.js",
     "dev": "npm run migrate && node --watch server.js",
-    "test": "node --test"
+    "test": "node --test",
+    "query:server": "node scripts/query-server.js"
   },
   "dependencies": {
     "gamedig": "^5.3.2"
