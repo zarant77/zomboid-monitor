@@ -330,5 +330,15 @@
   "Nearest rival": "Gap to the nearest rival",
   "To first place": "To first place",
   "Show missing books": "Show missing books",
-  "All books collected": "All books collected."
+  "All books collected": "All books collected.",
+  "Settings": "Settings",
+  "Could not load settings. Please try again.": "Could not load settings. Please try again.",
+  "Game clock": "Game clock",
+  "Real minutes per game day": "Real minutes per game day",
+  "Current in-game time": "Current in-game time",
+  "Synchronize clock": "Synchronize clock",
+  "Clock estimate pauses while the server is unreachable or monitoring is stopped. Resynchronize after game pauses or time skips.": "Clock estimate pauses while the server is unreachable or monitoring is stopped. Resynchronize after game pauses or time skips.",
+  "Clock synchronized.": "Clock synchronized.",
+  "Could not save clock settings.": "Could not save clock settings.",
+  "Game time (estimated)": "Game time (estimated)"
 }

@@ -18,7 +18,10 @@ try {
       (url.protocol !== 'https:' && !(url.protocol === 'http:' && ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)))) throw new Error();
   publicOrigin = url.origin;
 } catch { throw new Error('PUBLIC_ORIGIN must be a public HTTPS origin (or HTTP localhost for development)'); }
+const adminSteamIds = [...new Set((process.env.ADMIN_STEAM_IDS || '').split(/[\s,]+/).filter(Boolean))];
+if (adminSteamIds.some(id => !/^7656119\d{10}$/.test(id))) throw new Error('ADMIN_STEAM_IDS must contain SteamID64 values separated by commas or whitespace');
 module.exports = {
+  adminSteamIds,
   publicOrigin,
   steamApiKey: process.env.STEAM_API_KEY?.trim() || null,
   serverTimezone,

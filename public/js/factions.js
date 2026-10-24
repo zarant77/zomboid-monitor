@@ -27,7 +27,7 @@
     const pageName = t(books ? 'Books' : 'Faction');
     const pageTitle = active ? `${active.name} - ${pageName}` : pageName;
     $('books-heading').textContent = pageTitle;
-    document.title = ZM.user && (books || location.hash === '#factions') ? pageTitle : t('28 Kills Later · Project Zomboid Server Monitor');
+    if (location.hash !== '#settings') document.title = ZM.user && (books || location.hash === '#factions') ? pageTitle : t('28 Kills Later · Project Zomboid Server Monitor');
     $('no-faction').hidden = Boolean(active);
     $('faction-content').hidden = !active;
     $('faction-management').hidden = books;

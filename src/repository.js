@@ -1,8 +1,10 @@
+const { GameClock } = require('./game-clock');
 const { DEFAULT_SERVER_TIMEZONE, createServerDayClock } = require('./time');
 class Repository {
   constructor(db, config) {
     this.serverTimezone = config.serverTimezone || DEFAULT_SERVER_TIMEZONE;
     this.serverDayStart = createServerDayClock(this.serverTimezone);
+    this.gameClock = new GameClock(db);
     this.db = db; this.config = config; this.previousCheckTime = null;
     db.prepare('INSERT OR IGNORE INTO server_state(id,host,port) VALUES(1,?,?)').run(config.host, config.gamePort);
     const target = this.state();
@@ -91,6 +93,7 @@ class Repository {
         checks, failed, pingSum, pingChecks, playersSum, successes);
       db.prepare('DELETE FROM player_kill_changes WHERE created_at<=?')
         .run(new Date(Date.parse(at)-48*3600000).toISOString());
+      this.gameClock.observe(at,elapsed,Boolean(old.online),Boolean(online));
       db.exec('COMMIT'); this.previousCheckTime = Date.parse(at);
     } catch (error) { db.exec('ROLLBACK'); throw error; }
   }

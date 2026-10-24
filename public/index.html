@@ -55,7 +55,7 @@
 <header class="hero" data-hero="">
 <div class="header-actions">
 <nav id="main-menu" class="main-menu" hidden aria-label="" data-i18n-aria-label="Main menu">
-<div class="menu-pages"><a id="menu-monitor" href="#monitoring" aria-current="page"><span data-i18n="Monitoring"></span></a><a id="menu-factions" href="#factions"><span data-i18n="Faction"></span></a><a id="menu-books" href="#books" hidden><span data-i18n="Books"></span></a></div>
+<div class="menu-pages"><a id="menu-monitor" href="#monitoring" aria-current="page"><span data-i18n="Monitoring"></span></a><a id="menu-factions" href="#factions"><span data-i18n="Faction"></span></a><a id="menu-books" href="#books" hidden><span data-i18n="Books"></span></a><a id="menu-settings" href="#settings" hidden><span data-i18n="Settings"></span></a></div>
 </nav>
 <div class="menu-account"><span id="account-profile" hidden></span><a id="steam-login" href="/auth/steam" hidden><span data-i18n="Sign in through Steam"></span></a><button id="steam-logout" type="button" hidden><span data-i18n="Sign out"></span></button></div>
 <div id="language-switcher" class="language-switcher" role="group" data-i18n-aria-label="Choose language">
@@ -127,6 +127,8 @@
 </div>
 <div id="create-faction-card" class="faction-card"><h2><span data-i18n="Create faction"></span></h2><p id="create-consequence" class="note"></p><form id="create-faction"><label><span data-i18n="Faction name"></span><input name="name" maxlength="80" required></label><button class="primary-action"><span data-i18n="Create faction"></span></button></form></div>
 </section>
+<section id="settings-view" class="panel settings-page" aria-labelledby="settings-heading" hidden><h1 id="settings-heading"><span data-i18n="Settings"></span></h1>
+<form id="game-clock-form" class="game-clock-form"><h2><span data-i18n="Game clock"></span></h2><label><span data-i18n="Real minutes per game day"></span><input id="game-day-minutes" name="dayMinutes" type="number" min="1" max="10080" step="any" value="90" required></label><label><span data-i18n="Current in-game time"></span><input id="game-clock-time" name="time" type="time" step="60" required></label><button type="submit"><span data-i18n="Synchronize clock"></span></button><p class="note"><span data-i18n="Clock estimate pauses while the server is unreachable or monitoring is stopped. Resynchronize after game pauses or time skips."></span></p><p id="game-clock-message" role="status"></p></form></section>
 <footer><span data-i18n="28 Kills Later · Checks run sequentially · History persisted in SQLite"></span></footer>
 </div>
 <dialog id="faction-confirm" aria-labelledby="faction-confirm-title"><form method="dialog"><h2 id="faction-confirm-title"></h2><p id="faction-confirm-description"></p><div class="faction-actions"><button value="cancel" autofocus><span data-i18n="Cancel"></span></button><button id="faction-confirm-submit" value="confirm" class="danger-action"><span data-i18n="Confirm"></span></button></div></form></dialog>

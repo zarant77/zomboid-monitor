@@ -330,5 +330,15 @@
   "Nearest rival": "Vorsprung vor dem nächsten Rivalen",
   "To first place": "Bis zum ersten Platz",
   "Show missing books": "Fehlende Bücher anzeigen",
-  "All books collected": "Alle Bücher gesammelt."
+  "All books collected": "Alle Bücher gesammelt.",
+  "Settings": "Einstellungen",
+  "Could not load settings. Please try again.": "Die Einstellungen konnten nicht geladen werden. Bitte versuche es erneut.",
+  "Game clock": "Spielzeit",
+  "Real minutes per game day": "Reale Minuten pro Spieltag",
+  "Current in-game time": "Aktuelle Spielzeit",
+  "Synchronize clock": "Uhr synchronisieren",
+  "Clock estimate pauses while the server is unreachable or monitoring is stopped. Resynchronize after game pauses or time skips.": "Die Berechnung pausiert bei nicht erreichbarem Server oder gestoppter Überwachung. Nach Spielpausen oder Zeitsprüngen erneut synchronisieren.",
+  "Clock synchronized.": "Uhr synchronisiert.",
+  "Could not save clock settings.": "Uhreinstellungen konnten nicht gespeichert werden.",
+  "Game time (estimated)": "Spielzeit (geschätzt)"
 }

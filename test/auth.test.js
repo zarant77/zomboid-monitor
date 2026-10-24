@@ -5,10 +5,10 @@ const { migrate, applyServerWipe } = require('../src/db');
 const { createAuth } = require('../src/auth');
 const { createServer } = require('../src/http');
 const origin = 'https://helper.example';
-async function setup(t, valid = true) {
+async function setup(t, valid = true, adminSteamIds = []) {
   const db = new DatabaseSync(':memory:'); db.exec('PRAGMA foreign_keys=ON'); migrate(db); migrate(db);
   let calls = 0;
-  const auth = createAuth(db, { publicOrigin: origin }, async (url, options) => {
+  const auth = createAuth(db, { publicOrigin: origin, adminSteamIds }, async (url, options) => {
     calls++; assert.equal(url, 'https://steamcommunity.com/openid/login');
     assert.equal(options.body.get('openid.mode'), 'check_authentication');
     return { ok: true, text: async () => `ns:http://specs.openid.net/auth/2.0\nis_valid:${valid}\n` };
@@ -104,4 +104,34 @@ test('accounts are isolated and an already used Steam nonce cannot authenticate 
   assert.notEqual(a.id, b.id); assert.equal(b.steamId, '76561198000000002');
   await s.request('/auth/logout', { method: 'POST', headers: { cookie: firstCookie, origin } });
   assert.equal((await s.request('/api/account', { headers: { cookie: secondCookie } })).status, 200);
+});
+test('admin allowlist gates settings and the entire admin namespace by verified SteamID', async t => {
+  const s = await setup(t, true, ['76561198000000001']);
+  assert.equal((await s.request('/api/admin/settings')).status,401);
+  const attempt = await s.begin();
+  const response = await s.request(s.callback(attempt), { headers:{cookie:attempt.cookie} });
+  const cookie = response.headers.getSetCookie().find(v=>v.startsWith('__Host-zm_session=')).split(';')[0];
+  const me = await (await s.request('/api/me',{headers:{cookie}})).json();
+  assert.equal(me.user.isAdmin,true);
+  assert.equal(JSON.stringify(me).includes('adminSteamIds'),false);
+  assert.equal((await (await s.request('/api/admin/settings',{headers:{cookie}})).json()).settings.gameClock.dayMinutes,90);
+  assert.equal((await s.request('/api/admin/settings',{method:'PUT',headers:{cookie,origin:'https://evil.example','content-type':'application/json'},body:JSON.stringify({dayMinutes:90,time:'12:00'})})).status,403);
+  assert.equal((await s.request('/api/admin/settings',{method:'PUT',headers:{cookie,origin,'content-type':'application/json'},body:JSON.stringify({dayMinutes:90,time:'12:00'})})).status,200);
+  assert.equal((await s.request('/api/admin/settings',{method:'PUT',headers:{cookie,origin,'content-type':'application/json'},body:JSON.stringify({dayMinutes:0,time:'99:00'})})).status,400);
+  assert.equal((await s.request('/api/admin/settings',{method:'POST',headers:{cookie,origin}})).status,405);
+  assert.equal((await s.request('/api/admin/unknown',{headers:{cookie}})).status,404);
+  const other = await s.begin(), identity = 'https://steamcommunity.com/openid/id/76561198000000002';
+  const otherResponse = await s.request(s.callback(other,{identity,claimed_id:identity}),{headers:{cookie:other.cookie}});
+  const otherCookie = otherResponse.headers.getSetCookie().find(v=>v.startsWith('__Host-zm_session=')).split(';')[0];
+  assert.equal((await (await s.request('/api/me',{headers:{cookie:otherCookie}})).json()).user.isAdmin,false);
+  for(const path of ['/api/admin','/api/admin/settings','/api/admin/future']) assert.equal((await s.request(path,{headers:{cookie:otherCookie}})).status,403);
+  await s.request('/auth/logout',{method:'POST',headers:{cookie,origin}});
+  assert.equal((await s.request('/api/admin/settings',{headers:{cookie}})).status,401);
+});
+test('no configured admins grants no administrator access',async t=>{
+  const s=await setup(t), attempt=await s.begin();
+  const response=await s.request(s.callback(attempt),{headers:{cookie:attempt.cookie}});
+  const cookie=response.headers.getSetCookie().find(v=>v.startsWith('__Host-zm_session=')).split(';')[0];
+  assert.equal((await (await s.request('/api/me',{headers:{cookie}})).json()).user.isAdmin,false);
+  assert.equal((await s.request('/api/admin/settings',{headers:{cookie}})).status,403);
 });

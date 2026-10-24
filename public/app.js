@@ -55,6 +55,7 @@
     const h=state.history,s=state.stats;if(!s)return;
     const summary=h?.summary;
     metrics($('stats-metrics'),[
+      {label:t('Game time (estimated)'),value:s.gameClock?.time || '—',tone:'tone-green'},
       {label:t("Availability"),value:summary?.availability==null?'—':`${new Intl.NumberFormat(ZM.locale(),{minimumFractionDigits:2,maximumFractionDigits:2}).format(summary.availability)}%`},
       {label:t("Peak players"),value:number(summary?.peakPlayers)}, {label:t("Average ping"),value:ping(summary?.avgPing)},
       {label:t("Min ping"),value:ping(summary?.minPing)}, {label:t("Max ping"),value:ping(summary?.maxPing)},
@@ -135,6 +136,7 @@
     try{await navigator.clipboard.writeText(address);state.feedback={key:'copied',params:{address}};text('connection-message',t('copied',{address}));button.setAttribute('aria-label',t("Server address copied"));}
     catch{state.feedback={key:'copyUnavailable',params:{address}};text('connection-message',t('copyUnavailable',{address}));}
   });
+  document.addEventListener('gameclockchange',event=>{if(state.stats){state.stats.gameClock=event.detail;renderStats();}});
   document.addEventListener('accountchange',()=>ZM.renderPersonalCharacter(state.board,ZM.user));
   document.addEventListener('languagechange',()=>{
     if(state.status){renderServer(state.status);renderPlayers();renderEvents();renderMods(state.mods);renderStats();}

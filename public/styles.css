@@ -1404,3 +1404,11 @@ dialog::backdrop {
 .books-page .missing-books-toggle { margin:0; font-size:13px; }
 .books-page .missing-book { min-height:32px; cursor:pointer; }
 @media print { .missing-books-toggle { display:none!important; } }
+.settings-page { margin-top:20px; min-height:160px; }
+.settings-page h1 { font-size:25px; margin:0; }
+.game-clock-form { display:grid; grid-template-columns:repeat(2,minmax(0,260px)); gap:16px; margin-top:24px; align-items:end; }
+.game-clock-form h2,.game-clock-form p { grid-column:1 / -1; margin:0; }
+.game-clock-form label { display:flex; flex-direction:column; gap:8px; color:var(--muted); }
+.game-clock-form input,.game-clock-form button { min-height:44px; padding:10px 12px; border:1px solid var(--border); border-radius:8px; background:var(--panel-alt); color:var(--text); }
+.game-clock-form button { color:var(--green); }
+@media(max-width:600px) { .game-clock-form { grid-template-columns:1fr; } }
