@@ -25,6 +25,15 @@
     const word=(dictionaries[language]?.units ?? dictionaries.en?.units)?.[unit]?.[index] ?? unit;
     return t(unit==='second'?'agoSeconds':unit==='minute'?'agoMinutes':'agoHours',{count,unit:word});
   }
+  function relativeDay(value,now=new Date()) {
+    if(!value)return '—';
+    const date=new Date(value),current=new Date(now);
+    if(!Number.isFinite(date.getTime()) || !Number.isFinite(current.getTime()))return '—';
+    // Compare local calendar dates without letting daylight-saving changes affect the count.
+    const day=d=>Date.UTC(d.getFullYear(),d.getMonth(),d.getDate());
+    const days=Math.max(0,Math.round((day(current)-day(date))/86400000));
+    return new Intl.RelativeTimeFormat(locales[language],{numeric:'auto'}).format(days===0?0:-days,'day');
+  }
   const i18nReady=Promise.all(supported.map(async code=>{
     const response=await fetch(`/locales/${code}.json`);if(!response.ok)throw new Error(`Locale ${code}: HTTP ${response.status}`);
     dictionaries[code]=await response.json();
@@ -33,5 +42,5 @@
     document.getElementById('language-switcher')?.addEventListener('click',event=>{const button=event.target.closest('[data-language]');if(button)setLanguage(button.dataset.language);});
     window.addEventListener('storage',event=>{if(event.key===storageKey&&supported.includes(event.newValue))setLanguage(event.newValue,false);});
   });
-  Object.assign(ZM,{t,locale:()=>locales[language],setLanguage,relativeAge,i18nReady});
+  Object.assign(ZM,{t,locale:()=>locales[language],setLanguage,relativeAge,relativeDay,i18nReady});
 })();

@@ -1,5 +1,5 @@
 (() => {
-  const {$,escapeHtml,number,timestamp,time,duration,keyed,metrics,get,t}=ZM;
+  const {$,escapeHtml,number,timestamp,relativeDay,time,duration,keyed,metrics,get,t}=ZM;
   let selectedId=null,opener=null,details=null;
   const statusMarkup = online=>`<span class="player-status ${online ? 'online' : ''}"><span class="dot ${online ? 'green' : ''}"></span>${online ? t("Online") : t("Offline")}</span>`;
   function tableRows(id,list,leaderboard=false,rankMap=new Map()) {
@@ -20,7 +20,8 @@
       cells[2].textContent=number(p.currentKills);
       if(leaderboard){
         const markup=statusMarkup(p.online);if(cells[3].innerHTML!==markup)cells[3].innerHTML=markup;
-        cells[4].textContent=p.online?t("Now"):timestamp(p.lastSeen);cells[5].textContent=timestamp(p.firstSeen);
+        cells[4].textContent=p.online?t("Now"):relativeDay(p.lastSeen);cells[5].textContent=relativeDay(p.firstSeen);
+        cells[4].title=timestamp(p.lastSeen);cells[5].title=timestamp(p.firstSeen);
         cells[6].textContent=duration(p.longestSessionSeconds);cells[7].textContent=`+${number(p.killGainToday)}`;cells[7].className='gain';
         cells[8].textContent=number(p.deaths);
         cells[7].title=t('dailyGainNote',{timezone:p.serverTimezone});
@@ -98,8 +99,8 @@
       {label:player.online?t('Current session'):t('Last observed session'),value:duration(player.currentSessionSeconds)},
       {label:t('Longest observed session'),value:duration(player.longestSessionSeconds)},
       {label:t('Join count'),value:number(player.joinCount)},
-      {label:t('First seen'),value:timestamp(player.firstSeen)},
-      {label:t('Last seen'),value:player.online?t('Now'):timestamp(player.lastSeen)}
+      {label:t('First seen'),value:relativeDay(player.firstSeen),title:timestamp(player.firstSeen)},
+      {label:t('Last seen'),value:player.online?t('Now'):relativeDay(player.lastSeen),title:timestamp(player.lastSeen)}
     ]);
   }
   function renderDetails(player) {
@@ -110,7 +111,7 @@
       {label:t("Deaths"),value:number(player.deaths)},
       {label:t("Current kills"),value:number(player.currentKills)}, {label:t("Highest observed kills"),value:number(player.maxKills)},
       {label:t("Gain (today)"),value:`+${number(player.killGainToday)}`,tone:'tone-green'},
-      {label:t("First seen"),value:timestamp(player.firstSeen)}, {label:t("Last seen"),value:player.online?t("Now"):timestamp(player.lastSeen)},
+      {label:t("First seen"),value:relativeDay(player.firstSeen),title:timestamp(player.firstSeen)}, {label:t("Last seen"),value:player.online?t("Now"):relativeDay(player.lastSeen),title:timestamp(player.lastSeen)},
       {label:player.online?t("Current session"):t("Last observed session"),value:duration(player.currentSessionSeconds)},
       {label:t("Longest observed session"),value:duration(player.longestSessionSeconds)},
       {label:t("Observed sessions"),value:number(player.observedSessions)}, {label:t("Join count"),value:number(player.joinCount)}

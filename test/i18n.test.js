@@ -30,6 +30,18 @@ test('Ukrainian relative time plural forms and template interpolation',async()=>
   for(const [seconds,expected] of [[0,'щойно'],[2,'2 секунди тому'],[11,'11 секунд тому'],[21,'21 секунду тому'],[60,'1 хвилину тому'],[120,'2 хвилини тому'],[660,'11 хвилин тому'],[3600,'1 годину тому']])assert.equal(ZM.relativeAge(seconds),expected);
   assert.equal(ZM.t('playerJoin',{name:'Zar'}),'Zar приєднався');
 });
+test('player dates use calendar days and localized relative labels',async()=>{
+  const {context:{ZM}}=await load('uk-UA');
+  const now=new Date(2026,9,26,0,5);
+  for(const [day,expected] of [[26,'сьогодні'],[25,'учора'],[24,'позавчора'],[23,'3 дні тому'],[21,'5 днів тому'],[5,'21 день тому']]) {
+    assert.equal(ZM.relativeDay(new Date(2026,9,day,0,1),now),expected);
+  }
+  assert.equal(ZM.relativeDay(new Date(2026,9,25,23,59),now),'учора');
+  assert.equal(ZM.relativeDay(null,now),'—');
+  assert.equal(ZM.relativeDay('invalid',now),'—');
+  ZM.setLanguage('en');assert.equal(ZM.relativeDay(new Date(2026,9,25),now),'yesterday');
+  ZM.setLanguage('de');assert.equal(ZM.relativeDay(new Date(2026,9,25),now),'gestern');
+});
 test('server renders English metadata without JavaScript and serves locale assets',()=>{
   const {serveAsset}=require('../src/web');
   let body,status,mime;const response={writeHead(code,headers){status=code;mime=headers['Content-Type'];},end(value){body=String(value);}};

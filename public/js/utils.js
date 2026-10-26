@@ -35,7 +35,7 @@ window.ZM = {};
       const node=document.createElement('div'); node.className='metric';
       node.innerHTML=`${v.icon ? icon(v.icon) : ''}<div><strong></strong><span></span></div>`;
       return node;
-    },(node,v)=>{node.className=`metric ${v.tone || ''}`;node.querySelector('strong').textContent=v.value ?? '—';node.querySelector('span').textContent=v.label;});
+    },(node,v)=>{node.className=`metric ${v.tone || ''}`;if(v.title)node.title=v.title;else node.removeAttribute('title');node.querySelector('strong').textContent=v.value ?? '—';node.querySelector('span').textContent=v.label;});
   }
   function segments(container,attribute,value) {
     container.querySelectorAll('button').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset[attribute]===value)));
