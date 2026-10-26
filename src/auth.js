@@ -1,4 +1,3 @@
-const { GameClock } = require('./game-clock');
 const { randomBytes, createHash } = require('node:crypto');
 const ENDPOINT = 'https://steamcommunity.com/openid/login';
 const NS = 'http://specs.openid.net/auth/2.0';
@@ -9,8 +8,7 @@ function cookie(req, name) {
   const values = (req.headers.cookie || '').split(';').map(v => v.trim()).filter(v => v.startsWith(`${name}=`));
   return values.length === 1 ? values[0].slice(name.length + 1) : '';
 }
-function createAuth(db, { publicOrigin, adminSteamIds = [] }, fetchSteam = fetch, profiles = null) {
-  const admins = new Set(adminSteamIds);
+function createAuth(db, { publicOrigin }, fetchSteam = fetch, profiles = null) {
   const secure = publicOrigin.startsWith('https:');
   const sessionName = secure ? '__Host-zm_session' : 'zm_session';
   const attemptName = secure ? '__Host-zm_login' : 'zm_login';
@@ -24,31 +22,10 @@ function createAuth(db, { publicOrigin, adminSteamIds = [] }, fetchSteam = fetch
     if (!/^[a-f0-9]{64}$/.test(value)) return null;
     const row = db.prepare(`SELECT u.id, u.steam_id AS steamId, u.display_name AS displayName, u.avatar_url AS avatarUrl, u.created_at AS createdAt, u.last_login_at AS lastLoginAt
       FROM users u JOIN auth_sessions s ON s.user_id=u.id WHERE s.token_hash=? AND s.expires_at>?`).get(hash(value), Date.now());
-    return row ? { ...row, isAdmin: admins.has(row.steamId), profileUrl: `https://steamcommunity.com/profiles/${row.steamId}` } : null;
+    return row ? { ...row, profileUrl: `https://steamcommunity.com/profiles/${row.steamId}` } : null;
   }
   function redirect(res, location) { res.writeHead(303, { Location: location, 'Cache-Control': 'no-store' }); res.end(); }
   async function handle(req, res, url, json) {
-    if (url.pathname === '/api/admin' || url.pathname.startsWith('/api/admin/')) {
-      const user = currentUser(req);
-      if (!user) { json(res,401,{ error:'Authentication required' }); return true; }
-      if (!user.isAdmin) { json(res,403,{ error:'Administrator access required' }); return true; }
-      if (url.pathname !== '/api/admin/settings') { json(res,404,{ error:'Not found' }); return true; }
-      if (req.method === 'PUT') {
-        if (req.headers.origin !== publicOrigin) { json(res,403,{error:'Invalid origin'}); return true; }
-        if (!/^application\/json(?:;|$)/i.test(req.headers['content-type'] || '')) { json(res,415,{error:'JSON required'}); return true; }
-        const chunks=[]; let size=0;
-        for await (const chunk of req) { size+=chunk.length; if(size>4096) { json(res,413,{error:'Request too large'}); return true; } chunks.push(Buffer.from(chunk)); }
-        let data;
-        try { data=JSON.parse(Buffer.concat(chunks).toString('utf8')); } catch { json(res,400,{error:'Invalid JSON'}); return true; }
-        if (!currentUser(req)?.isAdmin) { json(res,403,{error:'Administrator access required'}); return true; }
-        if (!data || typeof data !== 'object' || Array.isArray(data)) { json(res,400,{error:'Invalid settings'}); return true; }
-        try { const gameClock=new GameClock(db).configure(data.dayMinutes,data.time,user.id); json(res,200,{settings:{gameClock}}); }
-        catch(error) { if (!(error instanceof RangeError)) throw error; json(res,400,{error:error.message}); }
-        return true;
-      }
-      if (req.method !== 'GET') { res.setHeader('Allow','GET, PUT'); json(res,405,{ error:'Method not allowed' }); return true; }
-      json(res,200,{ settings:{gameClock:new GameClock(db).read()} }); return true;
-    }
     if (!['/auth/steam', '/auth/steam/callback', '/auth/logout', '/api/me', '/api/account'].includes(url.pathname)) return false;
     res.setHeader('Cache-Control', 'no-store');
     res.setHeader('Referrer-Policy', 'no-referrer');

@@ -16,7 +16,6 @@
     ];
     keyed($('server-badges'),badges,b=>b.key,b=>{const node=document.createElement('span');node.innerHTML=`${icon(b.icon)}<span></span>`;return node;},(node,b)=>{node.className=`badge ${b.good?'good':''}`;node.lastChild.textContent=b.label;});
     metrics($('server-metrics'),[
-      {label:t('Game time (estimated)'),value:state.stats?.gameClock?.time || '—',icon:'clock',tone:'tone-green'},
       {label:t('Players'),value:s.players==null?'—':`${number(s.players)} / ${number(s.maxPlayers)}`,icon:'players'},
       {label:t("Ping"),value:ping(s.ping),icon:'chart',tone:s.ping==null?'':s.ping<80?'tone-green':s.ping<=150?'tone-amber':'tone-red'},
       {label:t("Version"),value:s.version,icon:'box'}, {label:t('Mods'),value:number(s.modCount),icon:'mods'},
@@ -136,7 +135,6 @@
     try{await navigator.clipboard.writeText(address);state.feedback={key:'copied',params:{address}};text('connection-message',t('copied',{address}));button.setAttribute('aria-label',t("Server address copied"));}
     catch{state.feedback={key:'copyUnavailable',params:{address}};text('connection-message',t('copyUnavailable',{address}));}
   });
-  document.addEventListener('gameclockchange',event=>{if(state.stats){state.stats.gameClock=event.detail;if(state.status)renderServer(state.status);}});
   document.addEventListener('accountchange',()=>ZM.renderPersonalCharacter(state.board,ZM.user));
   document.addEventListener('languagechange',()=>{
     if(state.status){renderServer(state.status);renderPlayers();renderEvents();renderMods(state.mods);renderStats();}

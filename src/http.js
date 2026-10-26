@@ -19,7 +19,7 @@ function createServer(repository, monitor, auth, factions) {
       }
       const routes = {
         '/api/status': () => repository.status(), '/api/players': () => repository.players(true),
-        '/api/leaderboard': () => repository.players(), '/api/stats': () => ({...repository.stats(),gameClock:repository.gameClock.read()}),
+        '/api/leaderboard': () => repository.players(), '/api/stats': () => repository.stats(),
         '/api/history': () => repository.history(url.searchParams.get('period') || '24h'),
         '/api/mods': () => repository.mods(), '/api/events': () => {
           const n = Number(url.searchParams.get('limit') ?? 50);

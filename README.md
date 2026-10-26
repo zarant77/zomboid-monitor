@@ -282,23 +282,3 @@ Migration `008_custom_books_five_volumes.sql` clears old custom translations and
 ## Personal character statistics
 
 Signed-in users see a panel immediately below the server overview, above online players and server statistics when their cached Steam display name exactly matches a tracked player name (case-sensitive). It shows current kills, competition rank (ties share a rank), gap to the leader or lead over second place, deaths, today's gain and session/history metrics. Rankings use all tracked players' current kills, including offline players, independently of leaderboard filters. Name matching is a display heuristic and does not establish identity or grant access. Guests and users without a matching Steam name do not see the panel.
-
-## Administrator access
-
-Set `ADMIN_STEAM_IDS` to a comma-separated list of SteamID64 values, for example `76561198000000001,76561198000000002`. Whitespace separators are also supported. These are Steam account IDs, not profile names or internal database IDs. Empty/unset means no administrators. Invalid values fail startup. Change the environment variable and restart/redeploy to apply permission changes; existing sessions do not need to sign in again.
-
-`/api/me` and `/api/account` expose only the current user’s `isAdmin` flag, never the allowlist. Administrators see Settings in the menu. `GET /api/admin/settings` returns `{settings:{gameClock}}`; it requires a valid Steam session (401 otherwise) and administrator membership (403 otherwise). The entire `/api/admin` namespace is guarded server-side, including unknown routes and unsupported methods. PUT on the settings endpoint synchronizes the estimated game clock and requires a same-origin JSON request. Future admin routes must keep this guard and add same-origin protection for mutations. The Settings screen contains the estimated game clock configuration.
-
-## Estimated in-game time
-
-Administrators set real minutes per game day (default 90, range 1–10080) and current game time (HH:mm) in Settings. Saving synchronizes the clock immediately. Migration `009_game_clock.sql` persists the duration and time anchor. `/api/stats` includes `gameClock` with `dayMinutes`, `time`, `syncedAt`, `observedAt` and `estimated:true`. Before the first synchronization the displayed time is unknown.
-
-Each completed monitor check advances the clock using actual elapsed real seconds × 24 / dayMinutes, while the previous observation says the server is online. The first offline result counts time up to detection and then stops the clock; the next successful result resumes it without counting the offline interval. The first check after monitor startup/restart establishes a baseline without counting monitor downtime. Requests or browser refreshes do not advance the clock independently, and elapsed time before a settings save is not counted twice. At 90 real minutes per day, five real seconds advance the game clock by 80 game seconds. Minutes wrap after 23:59. SQLite updates happen in the same transaction as the observation.
-
-This is an estimate, not server-reported time. Empty-server pauses, sleeping, time skips, clock changes and game-server restarts cannot be inferred reliably through A2S; an admin must resynchronize when these cause drift. Missing checks or periods when the monitor is stopped can also cause drift.
-
-## Inspect the server query response
-
-Run `npm run query:server` or `node scripts/query-server.js`. It reads GAME_HOST/GAME_PORT from the environment or .env, with the monitor’s defaults. Override them with `node scripts/query-server.js 2.28.54.80 16261` (or `npm run query:server -- 2.28.54.80 16261`). This standalone diagnostic does not open SQLite or start monitoring and does not require PUBLIC_ORIGIN or STEAM_API_KEY. It requests A2S info, players and rules, then prints the complete GameDig result without truncating arrays, nested objects or strings, including `raw`. A missing optional players/rules response does not discard available server info. Query failures exit with code 1.
-
-This exposes only what the game server publishes through A2S, not its complete configuration or sandbox settings. Published rules appear in `raw.rules`; unavailable settings require another server integration.

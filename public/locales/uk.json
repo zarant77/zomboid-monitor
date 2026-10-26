@@ -330,15 +330,5 @@
   "Nearest rival": "Відрив від найближчого суперника",
   "To first place": "До першого місця",
   "Show missing books": "Показувати книги, яких немає",
-  "All books collected": "Усі книги зібрано.",
-  "Settings": "Налаштування",
-  "Could not load settings. Please try again.": "Не вдалося завантажити налаштування. Спробуйте ще раз.",
-  "Game clock": "Ігровий годинник",
-  "Real minutes per game day": "Реальних хвилин на ігрову добу",
-  "Current in-game time": "Поточний ігровий час",
-  "Synchronize clock": "Синхронізувати годинник",
-  "Clock estimate pauses while the server is unreachable or monitoring is stopped. Resynchronize after game pauses or time skips.": "Розрахунок зупиняється, коли сервер недоступний або моніторинг вимкнений. Після ігрових пауз чи перемотування часу синхронізуйте годинник знову.",
-  "Clock synchronized.": "Годинник синхронізовано.",
-  "Could not save clock settings.": "Не вдалося зберегти налаштування годинника.",
-  "Game time (estimated)": "Ігровий час (розрахунок)"
+  "All books collected": "Усі книги зібрано."
 }
