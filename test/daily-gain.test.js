@@ -16,14 +16,14 @@ test('24h gain excludes initial kills and rolls forward while offline',t=>{
   assert.equal(gain(r,25),100);assert.equal(gain(r,26),0);
   assert.equal(r.player(r.players()[0].id,base+25*hour).killGain24h,100);
 });
-test('deaths and journal restores use signed changes and survive restarting',t=>{
+test('deaths and journal restores count only new highs and survive restarting',t=>{
   let r=setup(t);record(r,3000,0);record(r,4000,1);record(r,0,2);record(r,2800,3);
-  assert.equal(gain(r,1),1000);assert.equal(gain(r,2),0);assert.equal(gain(r,3),0);
-  r=new Repository(r.db,config);record(r,3200,4);assert.equal(gain(r,4),200);
-  record(r,3200,4);assert.equal(gain(r,4),200);
-  assert.equal(r.db.prepare('SELECT COUNT(*) AS n FROM player_kill_changes').get().n,4);
+  assert.equal(gain(r,1),1000);assert.equal(gain(r,2),1000);assert.equal(gain(r,3),1000);
+  r=new Repository(r.db,config);record(r,3200,4);assert.equal(gain(r,4),1000);
+  record(r,3200,4);assert.equal(gain(r,4),1000);
+  assert.equal(r.db.prepare('SELECT COUNT(*) AS n FROM player_kill_changes').get().n,1);
   r.record({online:false,error:'timeout'},new Date(base+5*hour).toISOString());
-  record(r,3300,6);assert.equal(gain(r,6),300);
+  record(r,3300,6);assert.equal(gain(r,6),1000);
   applyServerWipe(r.db,'wipe-daily');
   assert.equal(r.db.prepare('SELECT COUNT(*) AS n FROM player_kill_changes').get().n,0);
 });
@@ -44,4 +44,18 @@ test('calendar-day gain resets at midnight GMT+1 for online and offline players'
   r.record({online:false,error:'timeout'},new Date(base+24*hour).toISOString());
   assert.equal(r.players(false,base+46.999*hour)[0].killGainToday,100);
   assert.equal(r.players(false,base+47*hour)[0].killGainToday,0);
+});
+
+test('journal restoration after midnight and pruning waits for the previous maximum',t=>{
+  let r=setup(t);record(r,3000,0);record(r,4000,1);record(r,0,22);
+  r=new Repository(r.db,config);
+  record(r,2800,24);
+  const today=h=>r.players(false,base+h*hour)[0].killGainToday;
+  assert.equal(today(24),0);
+  record(r,3500,50);assert.equal(today(50),0);assert.equal(gain(r,50),0);
+  record(r,4000,51);assert.equal(today(51),0);
+  record(r,4015,52);assert.equal(today(52),15);assert.equal(gain(r,52),15);
+  assert.equal(r.player(r.players()[0].id,base+52*hour).killGainToday,15);
+  record(r,0,53);record(r,4010,54);record(r,4020,55);
+  assert.equal(today(55),20);
 });

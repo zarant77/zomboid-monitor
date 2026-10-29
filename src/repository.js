@@ -38,10 +38,12 @@ class Repository {
             longest_session_seconds=MAX(players.longest_session_seconds,excluded.current_session_seconds),
             join_count=players.join_count+CASE WHEN players.online=0 THEN 1 ELSE 0 END`).run(
               p.name, at, at, p.kills, p.kills, p.sessionSeconds, p.sessionSeconds, at, p.kills);
-          if (existing && p.kills !== existing.current_kills) {
+          // Count only new lifetime highs: journal restores must not count again,
+          // even after midnight, reconnects, pruning, or a monitor restart.
+          if (existing && p.kills > existing.max_kills) {
             db.prepare(`INSERT INTO player_kill_changes(player_id,created_at,delta) VALUES(?,?,?)
               ON CONFLICT(player_id,created_at) DO UPDATE SET delta=delta+excluded.delta`)
-              .run(existing.id, at, p.kills-existing.current_kills);
+              .run(existing.id, at, p.kills-existing.max_kills);
           }
           const sessionBaseline = !existing?.online || p.sessionSeconds < existing.current_session_seconds
             ? p.kills : existing.session_kill_baseline;
