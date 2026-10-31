@@ -27,5 +27,6 @@ module.exports = {
   host: process.env.GAME_HOST || '2.28.54.80',
   gamePort: integer('GAME_PORT', 16261, 65535),
   interval: integer('CHECK_INTERVAL', 5000, 2147483647),
+  maxKillGainPerCheck: integer('MAX_KILL_GAIN_PER_CHECK', 1000),
   databasePath: path.resolve(process.env.DATABASE_PATH || './data/zomboid.db')
 };

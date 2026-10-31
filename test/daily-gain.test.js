@@ -16,14 +16,14 @@ test('24h gain excludes initial kills and rolls forward while offline',t=>{
   assert.equal(gain(r,25),100);assert.equal(gain(r,26),0);
   assert.equal(r.player(r.players()[0].id,base+25*hour).killGain24h,100);
 });
-test('deaths and journal restores count only new highs and survive restarting',t=>{
+test('deaths and large restores are ignored; subsequent kills count after restarting',t=>{
   let r=setup(t);record(r,3000,0);record(r,4000,1);record(r,0,2);record(r,2800,3);
   assert.equal(gain(r,1),1000);assert.equal(gain(r,2),1000);assert.equal(gain(r,3),1000);
-  r=new Repository(r.db,config);record(r,3200,4);assert.equal(gain(r,4),1000);
-  record(r,3200,4);assert.equal(gain(r,4),1000);
-  assert.equal(r.db.prepare('SELECT COUNT(*) AS n FROM player_kill_changes').get().n,1);
+  r=new Repository(r.db,config);record(r,3200,4);assert.equal(gain(r,4),1400);
+  record(r,3200,4);assert.equal(gain(r,4),1400);
+  assert.equal(r.db.prepare('SELECT COUNT(*) AS n FROM player_kill_changes').get().n,2);
   r.record({online:false,error:'timeout'},new Date(base+5*hour).toISOString());
-  record(r,3300,6);assert.equal(gain(r,6),1000);
+  record(r,3300,6);assert.equal(gain(r,6),1500);
   applyServerWipe(r.db,'wipe-daily');
   assert.equal(r.db.prepare('SELECT COUNT(*) AS n FROM player_kill_changes').get().n,0);
 });
@@ -46,16 +46,23 @@ test('calendar-day gain resets at midnight GMT+1 for online and offline players'
   assert.equal(r.players(false,base+47*hour)[0].killGainToday,0);
 });
 
-test('journal restoration after midnight and pruning waits for the previous maximum',t=>{
-  let r=setup(t);record(r,3000,0);record(r,4000,1);record(r,0,22);
-  r=new Repository(r.db,config);
-  record(r,2800,24);
+test('restored score becomes the baseline below the historical maximum across midnight and restarts',t=>{
+  let r=setup(t);record(r,15000,0);record(r,0,22);
+  r=new Repository(r.db,config);record(r,13000,24);
   const today=h=>r.players(false,base+h*hour)[0].killGainToday;
   assert.equal(today(24),0);
-  record(r,3500,50);assert.equal(today(50),0);assert.equal(gain(r,50),0);
-  record(r,4000,51);assert.equal(today(51),0);
-  record(r,4015,52);assert.equal(today(52),15);assert.equal(gain(r,52),15);
-  assert.equal(r.player(r.players()[0].id,base+52*hour).killGainToday,15);
-  record(r,0,53);record(r,4010,54);record(r,4020,55);
-  assert.equal(today(55),20);
+  record(r,13500,25);record(r,14000,26);
+  assert.equal(today(26),1000);assert.equal(gain(r,26),1000);
+  assert.equal(r.player(r.players()[0].id,base+26*hour).killGainToday,1000);
+  record(r,0,27);record(r,14000,28);record(r,14010,29);
+  assert.equal(today(29),1010);
+});
+
+test('jump threshold is configurable and ignored jumps establish the next baseline',t=>{
+  const r=setup(t);r.config={...config,maxKillGainPerCheck:100};
+  record(r,100,0);record(r,200,1);assert.equal(gain(r,1),100);
+  record(r,301,2);assert.equal(gain(r,2),100);
+  record(r,306,3);assert.equal(gain(r,3),105);
+  record(r,306,4);record(r,0,5);record(r,5,6);
+  assert.equal(gain(r,6),110);
 });
